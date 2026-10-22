@@ -17,18 +17,9 @@ const CANVAS_SLOTS = [
   { x: 0.74, y: 0.65 }, // Sudeste
 ];
 
-const DEFAULT_POKEMON_ROSTER = [
-  { id: 1, name: 'Bulbasaur' },
-  { id: 4, name: 'Charmander' },
-  { id: 7, name: 'Squirtle' },
-  { id: 10, name: 'Caterpie' },
-  { id: 25, name: 'Pikachu' },
-  { id: 39, name: 'Jigglypuff' },
-  { id: 54, name: 'Psyduck' },
-  { id: 79, name: 'Slowpoke' },
-  { id: 133, name: 'Eevee' },
-  { id: 143, name: 'Snorlax' },
-];
+import { DEFAULT_AVAILABLE_ROSTER } from '../data/pokemon-catalog.js';
+
+const DEFAULT_POKEMON_ROSTER = DEFAULT_AVAILABLE_ROSTER;
 
 export function calculateSpawns(options: SpawnEngineOptions): SpawnedPokemonDTO[] {
   const {

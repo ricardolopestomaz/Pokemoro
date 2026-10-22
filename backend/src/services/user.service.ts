@@ -49,6 +49,7 @@ export class UserService {
     else if (type === 'MASTER') newInventory.master += quantity;
 
     this.userRepo.updateInventory(userId, newInventory);
+    this.userRepo.deductFocusCoins(userId, totalCost);
     return this.getProfile(userId);
   }
 }

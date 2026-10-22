@@ -108,7 +108,8 @@ test('API REST: Teste de ponta a ponta dos endpoints HTTP', async () => {
     const envJson = await envRes.json();
     assert.equal(envJson.activeEnvironment, 'beach');
 
-    // 11. Compra de biscoito com Moedas de Foco
+    // 11. Compra de biscoito com Moedas de Foco (descontando moedas da conta)
+    const profileBefore = await (await fetch(`${baseUrl}/api/user/profile`)).json();
     const buyRes = await fetch(`${baseUrl}/api/user/biscuits/buy`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -116,6 +117,8 @@ test('API REST: Teste de ponta a ponta dos endpoints HTTP', async () => {
     });
     const buyJson = await buyRes.json();
     assert.ok(buyJson.inventory.basic >= 1);
+    const profileAfter = await (await fetch(`${baseUrl}/api/user/profile`)).json();
+    assert.equal(profileAfter.focusCoins, profileBefore.focusCoins - 50);
 
     // 12. Sessão interrompida (Penalidade gentil: salva minutos mas bloqueia Coffee Break)
     const start2 = await fetch(`${baseUrl}/api/study/sessions/start`, {

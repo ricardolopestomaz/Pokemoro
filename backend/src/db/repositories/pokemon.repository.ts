@@ -5,18 +5,9 @@ import { UserPokemonDTO, StudyRole } from '../../dtos/team.dto.js';
 import { FocusDexEntryDTO, SleepStyle, PokemonVariant } from '../../dtos/index.js';
 import crypto from 'crypto';
 
-const POKEMON_METADATA_MAP: Record<number, { name: string; role: StudyRole; bonus: string }> = {
-  1: { name: 'Bulbasaur', role: 'STAMINA', bonus: '+10% de retenção e menor perda de energia' },
-  4: { name: 'Charmander', role: 'ENERGY', bonus: '+10% de motivação em sessões longas e madrugadas' },
-  7: { name: 'Squirtle', role: 'STAMINA', bonus: '+10% de foco constante e redução de fadiga mental' },
-  10: { name: 'Caterpie', role: 'ITEMS', bonus: '+15% de chance de coletar Biscoitos de Café durante o estudo' },
-  25: { name: 'Pikachu', role: 'SUBJECT_EXACT', bonus: '+15% Focus Power em matérias de Exatas e Tecnologia' },
-  39: { name: 'Jigglypuff', role: 'ENERGY', bonus: 'Áudio ambiente relaxante aumenta recuperação no Coffee Break' },
-  54: { name: 'Psyduck', role: 'SUBJECT_EXACT', bonus: '+15% de clareza mental e raciocínio lógico' },
-  79: { name: 'Slowpoke', role: 'ENERGY', bonus: '+20% de descanso restaurador nos intervalos' },
-  133: { name: 'Eevee', role: 'ITEMS', bonus: '+15% de Moedas de Foco coletadas por Pomodoro' },
-  143: { name: 'Snorlax', role: 'ENERGY', bonus: 'Poder do Sono: +25% Focus Power em sessões de 50min+' },
-};
+import { AVAILABLE_POKEMON_CATALOG } from '../../data/pokemon-catalog.js';
+
+const POKEMON_METADATA_MAP = AVAILABLE_POKEMON_CATALOG;
 
 export class PokemonRepository {
   private db = getDatabase();
@@ -212,8 +203,9 @@ export class PokemonRepository {
     });
 
     const totalAvailable = catalogEntries.length * 3;
-    const completionPercentage = totalAvailable > 0
-      ? Math.round((totalDiscovered / totalAvailable) * 100)
+    const rawPercentage = totalAvailable > 0 ? (totalDiscovered / totalAvailable) * 100 : 0;
+    const completionPercentage = totalDiscovered > 0
+      ? Math.max(1, Math.round(rawPercentage))
       : 0;
 
     return {
@@ -241,6 +233,8 @@ export class PokemonRepository {
       role: p.role as StudyRole,
       passiveBonusDescription: p.passiveBonusDescription || '',
       recruitedAt: p.recruitedAt,
+      isInActiveTeam: p.isInActiveTeam,
+      teamSlot: p.teamSlot,
     }));
   }
 

@@ -136,7 +136,7 @@ test('Mecânica: Equipe de 5 Study Buddies e Focus Dex', () => {
   const p3 = pokemonRepo.recruitPokemon(userId, 1, 'Bulbasaur 1');
   const p4 = pokemonRepo.recruitPokemon(userId, 4, 'Charmander 1');
   const p5 = pokemonRepo.recruitPokemon(userId, 7, 'Squirtle 1');
-  const p6 = pokemonRepo.recruitPokemon(userId, 143, 'Snorlax 1');
+  const p6 = pokemonRepo.recruitPokemon(userId, 133, 'Eevee 1');
 
   // Define equipe com 5 Pokémon (limite do jogo)
   pokemonRepo.setActiveTeam(userId, [p1.id, p2.id, p3.id, p4.id, p5.id]);

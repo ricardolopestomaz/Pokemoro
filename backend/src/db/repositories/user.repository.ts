@@ -119,4 +119,13 @@ export class UserRepository {
       .where(eq(users.id, userId))
       .run();
   }
+
+  public deductFocusCoins(userId: string, amount: number): void {
+    const user = this.db.select().from(users).where(eq(users.id, userId)).get();
+    if (!user) throw new Error('User not found');
+    this.db.update(users)
+      .set({ focusCoins: Math.max(0, user.focusCoins - amount) })
+      .where(eq(users.id, userId))
+      .run();
+  }
 }

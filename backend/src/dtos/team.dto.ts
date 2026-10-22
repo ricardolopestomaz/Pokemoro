@@ -12,6 +12,8 @@ export interface UserPokemonDTO {
   role: StudyRole;
   passiveBonusDescription: string;     // ex: "+10% XP em matérias de Exatas"
   recruitedAt: string;
+  isInActiveTeam?: boolean;
+  teamSlot?: number | null;
 }
 
 export interface SetStudyTeamRequest {

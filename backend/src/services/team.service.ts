@@ -15,8 +15,9 @@ export class TeamService {
 
   public getActiveTeam(userId: string): SetStudyTeamResponse {
     const all = this.pokemonRepo.listUserPokemon(userId);
-    // Filtra membros da equipe
-    const activeTeam = all.slice(0, 5); // Primeiros equipados
+    const activeTeam = all
+      .filter((p) => p.isInActiveTeam)
+      .sort((a, b) => (a.teamSlot ?? 0) - (b.teamSlot ?? 0));
     const activePassives = activeTeam
       .map((p) => p.passiveBonusDescription)
       .filter((desc): desc is string => Boolean(desc));
