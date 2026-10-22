@@ -1,0 +1,15 @@
+node_modules/
+dist/
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+data/*.sqlite
+data/*.sqlite-journal
+data/*.sqlite-wal
+data/*.sqlite-shm
+__pycache__/
+*.pyc
+.env
+.DS_Store
+Thumbs.db
