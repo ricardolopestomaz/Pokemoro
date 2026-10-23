@@ -33,6 +33,7 @@ export const sfx = {
   start: () => { play([{ freq: 523, dur: 0.15 }, { freq: 659, dur: 0.15, delay: 0.12 }, { freq: 784, dur: 0.25, delay: 0.24 }]); haptic(20); },
   bell: () => { play([{ freq: 880, dur: 0.9, gain: 0.1 }, { freq: 1318, dur: 0.9, delay: 0.05, gain: 0.05 }]); haptic([60, 40, 60]); },
   munch: () => { play([{ freq: 220, dur: 0.07, type: 'square', gain: 0.05 }, { freq: 196, dur: 0.07, delay: 0.1, type: 'square', gain: 0.05 }, { freq: 247, dur: 0.07, delay: 0.2, type: 'square', gain: 0.05 }]); haptic(15); },
+  camera: () => { play([{ freq: 1100, dur: 0.04, type: 'square', gain: 0.07 }, { freq: 750, dur: 0.1, delay: 0.05, type: 'triangle', gain: 0.09 }]); haptic([30, 20]); },
   fanfare: () => { play([523, 659, 784, 1047].map((f, i) => ({ freq: f, dur: 0.22, delay: i * 0.13, type: 'triangle' as OscillatorType, gain: 0.09 })).concat([{ freq: 1319, dur: 0.6, delay: 0.55, type: 'triangle', gain: 0.09 }])); haptic([40, 30, 40, 30, 80]); },
   warn: () => { play([{ freq: 300, dur: 0.2, type: 'sawtooth', gain: 0.04 }]); haptic(30); },
 };

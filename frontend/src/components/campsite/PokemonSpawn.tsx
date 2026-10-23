@@ -22,6 +22,12 @@ export function PokemonSpawn({ spawn, index, onClick }: Props) {
     onClick(spawn);
   };
 
+  // Evita colisão direta no centro se um spawn antigo tiver coordenadas 0.5, 0.5
+  const isDirectCenter =
+    Math.abs(spawn.canvasPosition.x - 0.5) < 0.05 && Math.abs(spawn.canvasPosition.y - 0.5) < 0.05;
+  const leftPct = isDirectCenter ? 50 : spawn.canvasPosition.x * 100;
+  const topPct = isDirectCenter ? 25 : spawn.canvasPosition.y * 100;
+
   return (
     <motion.button
       id={`spawn-${spawn.spawnId}`}
@@ -31,7 +37,7 @@ export function PokemonSpawn({ spawn, index, onClick }: Props) {
       transition={{ type: 'spring', stiffness: 220, damping: 14, delay: 0.12 * index }}
       whileTap={{ scale: 0.92 }}
       className="absolute z-10 w-[38%] -translate-x-1/2 -translate-y-1/2 cursor-pointer focus:outline-none"
-      style={{ left: `${spawn.canvasPosition.x * 100}%`, top: `${spawn.canvasPosition.y * 100}%` }}
+      style={{ left: `${leftPct}%`, top: `${topPct}%` }}
       aria-label={`${spawn.pokemonName} dormindo`}
     >
       {/* Etiqueta flutuante: apenas nome do Pokémon com o coração e a quantidade de coração */}

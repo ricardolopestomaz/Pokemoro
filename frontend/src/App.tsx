@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { GameProvider, useGame } from './hooks/useGameState';
 import { MobileFrame } from './components/layout/MobileFrame';
 import { TopHUD } from './components/layout/TopHUD';
@@ -13,9 +14,9 @@ import { ShopSheet } from './components/snack/ShopSheet';
 import { TeamScreen } from './components/team/TeamScreen';
 import { DexScreen } from './components/dex/DexScreen';
 import { DiaryScreen } from './components/diary/DiaryScreen';
-import { OnboardingModal } from './components/onboarding/OnboardingModal';
+import { OnboardingTour } from './components/onboarding/OnboardingTour';
 import { caterpieIcon, envUrl } from './lib/assets';
-import type { SpawnedPokemon } from './types';
+import type { SpawnedPokemon, TabId } from './types';
 
 function Splash({ offline, onRetry }: { offline: boolean; onRetry: () => void }) {
   return (
@@ -35,11 +36,12 @@ function Splash({ offline, onRetry }: { offline: boolean; onRetry: () => void })
 }
 
 function Shell() {
-  const { loading, offline, profile, tab, refreshAll } = useGame();
+  const { loading, offline, profile, tab, setTab, refreshAll } = useGame();
   const [sessionRunning, setSessionRunning] = useState(false);
   const [active, setActive] = useState<{ spawnId: string; stage: 'polaroid' | 'snack'; photoDataUrl?: string } | null>(null);
   const [seen, setSeen] = useState<Set<string>>(new Set());
   const [shop, setShop] = useState(false);
+  const [tourTimer, setTourTimer] = useState<{ seconds: number; running: boolean } | null>(null);
   const { coffeeBreak } = useGame();
 
   const openSpawn = useCallback((s: SpawnedPokemon, photoDataUrl?: string) => {
@@ -50,8 +52,14 @@ function Shell() {
     });
   }, [seen]);
 
+  // Callback para o tour mudar aba
+  const handleTourSetTab = useCallback((t: TabId) => {
+    setTab(t);
+  }, [setTab]);
+
   const spawn = coffeeBreak?.spawns.find((s) => s.spawnId === active?.spawnId);
   const bg = envUrl(profile?.activeEnvironment ?? 'greengrass');
+  const isTour = profile !== null && !profile.hasCompletedOnboarding;
 
   return (
     <MobileFrame>
@@ -61,46 +69,58 @@ function Shell() {
 
       {!loading && !offline && (
         <>
-          {profile && !profile.hasCompletedOnboarding ? (
-            <OnboardingModal
-              key="onboarding"
-              onCompleted={async () => {
-                await refreshAll();
-              }}
-            />
-          ) : (
-            <>
-              <TopHUD onShop={() => setShop(true)} />
-              {tab === 'rest' && <Campsite onOpenSpawn={openSpawn} />}
-              {/* O Pomodoro permanece montado para o timer sobreviver à troca de abas */}
-              <div className={tab === 'focus' ? '' : 'hidden'}>
-                <PomodoroScreen onRunningChange={setSessionRunning} />
-              </div>
-              {tab === 'journey' && <DiaryScreen />}
-              {tab === 'team' && <TeamScreen />}
-              {tab === 'dex' && <DexScreen />}
-              {!sessionRunning && <BottomNav />}
-
-              <AnimatePresence>
-                {active && spawn && active.stage === 'polaroid' && (
-                  <PolaroidModal
-                    key="polaroid"
-                    spawn={spawn}
-                    photoDataUrl={active.photoDataUrl}
-                    onClose={() => setActive(null)}
-                    onRegister={() => {
-                      setSeen((s) => new Set(s).add(spawn.spawnId));
-                      setActive({ spawnId: spawn.spawnId, stage: 'snack', photoDataUrl: active.photoDataUrl });
-                    }}
-                  />
-                )}
-                {active && spawn && active.stage === 'snack' && (
-                  <SnackPanel key="snack" spawnId={spawn.spawnId} onClose={() => setActive(null)} />
-                )}
-                {shop && <ShopSheet key="shop" onClose={() => setShop(false)} />}
-              </AnimatePresence>
-            </>
+          {/* Telas reais sempre montadas durante o tour (para mostrar a aba certa) */}
+          <TopHUD onShop={() => setShop(true)} />
+          {tab === 'rest' && (
+            <div className="absolute inset-0 z-10">
+              <Campsite onOpenSpawn={openSpawn} isTour={isTour} />
+            </div>
           )}
+          {/* O Pomodoro permanece montado para o timer sobreviver à troca de abas */}
+          <div className={tab === 'focus' ? '' : 'hidden'}>
+            <PomodoroScreen
+              onRunningChange={setSessionRunning}
+              tourRunning={tourTimer?.running}
+              tourSeconds={tourTimer?.seconds}
+            />
+          </div>
+          {tab === 'journey' && <DiaryScreen />}
+          {tab === 'team' && <TeamScreen />}
+          {tab === 'dex' && <DexScreen />}
+          {!sessionRunning && !isTour && <BottomNav />}
+
+          {/* Modals reais (só fora do tour) */}
+          {!isTour && (
+            <AnimatePresence>
+              {active && spawn && active.stage === 'polaroid' && (
+                <PolaroidModal
+                  key="polaroid"
+                  spawn={spawn}
+                  photoDataUrl={active.photoDataUrl}
+                  onClose={() => setActive(null)}
+                  onRegister={() => {
+                    setSeen((s) => new Set(s).add(spawn.spawnId));
+                    setActive({ spawnId: spawn.spawnId, stage: 'snack', photoDataUrl: active.photoDataUrl });
+                  }}
+                />
+              )}
+              {active && spawn && active.stage === 'snack' && (
+                <SnackPanel key="snack" spawnId={spawn.spawnId} onClose={() => setActive(null)} />
+              )}
+              {shop && <ShopSheet key="shop" onClose={() => setShop(false)} />}
+            </AnimatePresence>
+          )}
+
+          {/* Tour Interativo — overlay sobre tudo */}
+          {isTour && (
+            <OnboardingTour
+              key="onboarding-tour"
+              onSetTab={handleTourSetTab}
+              onTourTimer={setTourTimer}
+              onCompleted={async () => { await refreshAll(); }}
+            />
+          )}
+
           <Toasts />
         </>
       )}

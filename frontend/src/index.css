@@ -137,3 +137,49 @@ body {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
 .sprite { image-rendering: auto; pointer-events: none; -webkit-user-drag: none; }
+
+/* ---------- Efeito Laminado / Foil Holográfico Estilo Balatro ---------- */
+@keyframes balatro-foil-sweep {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 100% 100%;
+  }
+}
+
+.balatro-foil-sprite {
+  position: relative;
+  display: inline-block;
+  transform: translate3d(0, 0, 0);
+  opacity: 1;
+  filter: drop-shadow(0 8px 16px rgba(72, 208, 176, 0.3)) drop-shadow(0 0 10px rgba(255, 203, 5, 0.25));
+}
+
+.balatro-foil-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform: translate3d(0, 0, 0);
+  opacity: 0.55;
+  will-change: background-position;
+  background: linear-gradient(
+    125deg,
+    rgba(79, 195, 247, 0.45) 0%,
+    rgba(255, 112, 166, 0.5) 20%,
+    rgba(255, 235, 120, 0.55) 40%,
+    rgba(255, 255, 255, 0.7) 50%,
+    rgba(167, 139, 250, 0.5) 70%,
+    rgba(79, 195, 247, 0.45) 85%,
+    rgba(255, 112, 166, 0.5) 100%
+  );
+  background-size: 220% 220%;
+  animation: balatro-foil-sweep 4.5s ease-in-out infinite alternate;
+  mix-blend-mode: overlay;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}

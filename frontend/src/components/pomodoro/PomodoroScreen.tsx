@@ -22,9 +22,13 @@ const BUBBLES = Array.from({ length: 10 }, (_, i) => ({
   left: (i * 37) % 100, size: 14 + ((i * 13) % 34), dur: 10 + ((i * 7) % 12), delay: -((i * 3) % 10),
 }));
 
-interface Props { onRunningChange: (running: boolean) => void }
+interface Props {
+  onRunningChange: (running: boolean) => void;
+  tourRunning?: boolean;
+  tourSeconds?: number;
+}
 
-export function PomodoroScreen({ onRunningChange }: Props) {
+export function PomodoroScreen({ onRunningChange, tourRunning, tourSeconds }: Props) {
   const { subjects, team, profile, setTab, toast, refreshAll } = useGame();
   const [modeId, setModeId] = useState<PomodoroMode>('CLASSIC_25');
   const [subjectId, setSubjectId] = useState<string | null>(null);
@@ -175,8 +179,11 @@ export function PomodoroScreen({ onRunningChange }: Props) {
     if (unlocked) setTab('rest');
   };
 
-  const caption = running ? '• • •  Focando  • • •' : 'Pronto para focar';
-  const displaySeconds = running || timer.status === 'finished' ? timer.remaining : mode.minutes * 60;
+  const isTour = Boolean(tourRunning);
+  const activeRunning = running || isTour;
+  const caption = isTour ? '• • •  Foco Demonstrativo (10s)  • • •' : running ? '• • •  Focando  • • •' : 'Pronto para focar';
+  const displayProgress = isTour ? Math.min(1, (tourSeconds ?? 0) / 10) : timer.progress;
+  const displaySeconds = isTour ? (tourSeconds ?? 0) : (running || timer.status === 'finished' ? timer.remaining : mode.minutes * 60);
 
   return (
     <section
@@ -189,8 +196,8 @@ export function PomodoroScreen({ onRunningChange }: Props) {
         ))}
       </div>
 
-      <div className={`relative flex min-h-full flex-col items-center gap-4 px-5 pt-[104px] ${running ? 'pb-8' : 'pb-28'}`}>
-        {!running && (
+      <div className={`relative flex min-h-full flex-col items-center gap-4 px-5 pt-[104px] ${activeRunning ? 'pb-8' : 'pb-28'}`}>
+        {!activeRunning && (
           <div className="grid w-full grid-cols-3 gap-2" role="tablist" aria-label="Modo do timer">
             {MODES.map((m) => {
               const active = m.id === modeId;
@@ -212,9 +219,9 @@ export function PomodoroScreen({ onRunningChange }: Props) {
           </div>
         )}
 
-        {!running && <SubjectSelector value={subjectId} onChange={setSubjectId} />}
+        {!activeRunning && <SubjectSelector value={subjectId} onChange={setSubjectId} />}
 
-        {mode.id === 'FREE_STOPWATCH' && (
+        {!activeRunning && mode.id === 'FREE_STOPWATCH' && (
           <div className="flex items-center gap-2 rounded-2xl border border-white/30 bg-white/20 px-3.5 py-2 text-center text-xs font-bold text-white shadow-sm backdrop-blur-xs">
             <span>⏱</span>
             <span>
@@ -224,29 +231,31 @@ export function PomodoroScreen({ onRunningChange }: Props) {
         )}
 
         <CircularTimer
-          progress={timer.progress}
-          seconds={mode.minutes === 0 && running ? timer.elapsed : displaySeconds}
+          progress={displayProgress}
+          seconds={isTour ? displaySeconds : (mode.minutes === 0 && running ? timer.elapsed : displaySeconds)}
           partnerId={partnerId}
-          distracted={!vis.deepFocus}
-          running={running}
-          caption={mode.minutes === 0 && running ? '• • •  Tempo livre  • • •' : caption}
+          distracted={isTour ? false : !vis.deepFocus}
+          running={activeRunning}
+          caption={isTour ? caption : (mode.minutes === 0 && running ? '• • •  Tempo livre  • • •' : caption)}
         />
 
-        {running && <DeepFocusBadge deepFocus={vis.deepFocus} isOut={vis.isOut} graceLeft={vis.graceLeft} />}
+        {activeRunning && <DeepFocusBadge deepFocus={isTour ? true : vis.deepFocus} isOut={isTour ? false : vis.isOut} graceLeft={isTour ? 10 : vis.graceLeft} />}
 
-        <div className="mt-1 flex w-full flex-col gap-3">
-          {!running ? (
-            <>
-              <button id="btn-start-pomodoro" className="btn w-full py-4 text-lg" disabled={busy || !subjectId} onClick={start}>
-                {busy ? 'Preparando...' : 'Iniciar Sessão de Foco'}
+        {!isTour && (
+          <div className="mt-1 flex w-full flex-col gap-3">
+            {!running ? (
+              <>
+                <button id="btn-start-pomodoro" className="btn w-full py-4 text-lg" disabled={busy || !subjectId} onClick={start}>
+                  {busy ? 'Preparando...' : 'Iniciar Sessão de Foco'}
+                </button>
+              </>
+            ) : (
+              <button id="btn-end-session" className="btn btn-ghost w-full py-3.5 font-bold !text-slate-800 border-2 border-slate-300 shadow-md active:scale-95" onClick={() => (mode.minutes === 0 ? quit() : setConfirmQuit(true))}>
+                {mode.minutes === 0 ? 'Concluir Sessão' : 'Encerrar Sessão'}
               </button>
-            </>
-          ) : (
-            <button id="btn-end-session" className="btn btn-ghost w-full py-3.5 font-bold !text-slate-800 border-2 border-slate-300 shadow-md active:scale-95" onClick={() => (mode.minutes === 0 ? quit() : setConfirmQuit(true))}>
-              {mode.minutes === 0 ? 'Concluir Sessão' : 'Encerrar Sessão'}
-            </button>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Confirmação gentil de interrupção */}

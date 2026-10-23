@@ -48,6 +48,7 @@ const mockProfile: UserProfile = {
   inventory: { basic: 1, great: 0, master: 0 },
   activeEnvironment: 'greengrass',
   activeTeamPokemonIds: [],
+  hasCompletedOnboarding: true,
   createdAt: '',
 };
 
@@ -68,10 +69,11 @@ vi.mock('../hooks/useGameState', () => ({
 }));
 
 describe('components/campsite/Campsite', () => {
-  it('deve exibir mensagem de incentivo e botão "Começar a estudar" quando não há spawns', () => {
+  it('deve exibir o Pokémon Líder, mensagem de incentivo e botão "Começar a estudar" quando não há spawns', () => {
     mockCoffeeBreak = null;
     render(<Campsite onOpenSpawn={vi.fn()} />);
 
+    expect(screen.getByText(/Bulba \(Líder\)/i)).toBeInTheDocument();
     expect(screen.getByText(/Seu cantinho de descanso está pronto/i)).toBeInTheDocument();
     const btnFocus = screen.getByText(/Começar a estudar/i);
     expect(btnFocus).toBeInTheDocument();
@@ -80,7 +82,7 @@ describe('components/campsite/Campsite', () => {
     expect(mockSetTab).toHaveBeenCalledWith('focus');
   });
 
-  it('deve renderizar os Pokémon sorteados e a barra inferior quando houver spawns', () => {
+  it('deve renderizar os Pokémon sorteados, a barra inferior E manter o Pokémon Líder visível', () => {
     mockCoffeeBreak = {
       sessionId: 'sess-1',
       focusPower: 300,
@@ -91,9 +93,14 @@ describe('components/campsite/Campsite', () => {
 
     render(<Campsite onOpenSpawn={vi.fn()} />);
 
+    expect(screen.getByText(/Bulba \(Líder\)/i)).toBeInTheDocument();
     expect(screen.getByText(/Charmander/i)).toBeInTheDocument();
     expect(screen.getByText(/Amizades de Hoje/i)).toBeInTheDocument();
     expect(screen.getByText(/0 de 1 recrutados/i)).toBeInTheDocument();
+
+    // Clicar no líder dispara toast afetuoso
+    fireEvent.click(screen.getByText(/Bulba \(Líder\)/i));
+    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining('Bulba'), 'ok');
   });
 });
 

@@ -28,11 +28,11 @@ const KEY_ACTIVE_BREAK = 'pokemoro_active_break';
 const KEY_SESSIONS = 'pokemoro_sessions';
 
 const CANVAS_SLOTS = [
-  { x: 0.50, y: 0.50 }, // Centro
-  { x: 0.28, y: 0.38 }, // Noroeste
-  { x: 0.72, y: 0.38 }, // Nordeste
-  { x: 0.25, y: 0.65 }, // Sudoeste
-  { x: 0.74, y: 0.65 }, // Sudeste
+  { x: 0.26, y: 0.36 }, // Noroeste (topo esquerda)
+  { x: 0.74, y: 0.36 }, // Nordeste (topo direita)
+  { x: 0.22, y: 0.68 }, // Sudoeste (base esquerda)
+  { x: 0.78, y: 0.68 }, // Sudeste (base direita)
+  { x: 0.50, y: 0.25 }, // Norte Central (topo centro)
 ];
 
 function loadJson<T>(key: string, fallback: T): T {
@@ -94,9 +94,9 @@ export class OfflineGameEngine {
     };
 
     const collection = this.getCollection();
-    const hasCaterpie = collection.some((p) => p.pokemonId === 10);
-    if (!hasCaterpie) {
-      const caterpieItem: UserPokemon = {
+    let caterpieItem = collection.find((p) => p.pokemonId === 10);
+    if (!caterpieItem) {
+      caterpieItem = {
         id: caterpieId,
         pokemonId: 10,
         nickname: 'Caterpie',
@@ -112,9 +112,6 @@ export class OfflineGameEngine {
       collection.unshift(caterpieItem);
       saveJson(KEY_COLLECTION, collection);
 
-      // Define como líder na equipe
-      saveJson(KEY_ACTIVE_TEAM, [caterpieId]);
-
       // Amizade no máximo
       const friendships = loadJson<Record<number, number>>(KEY_FRIENDSHIPS, {});
       friendships[10] = 5;
@@ -122,6 +119,12 @@ export class OfflineGameEngine {
 
       // Registra Estilo 1 na Focus Dex
       this.saveDexPhoto(10, 1, '', false);
+    }
+
+    // SEMPRE garante que haja equipe ativa com pelo menos o Caterpie (ou o líder)
+    const activeIds = loadJson<string[]>(KEY_ACTIVE_TEAM, []);
+    if (activeIds.length === 0) {
+      saveJson(KEY_ACTIVE_TEAM, [caterpieItem.id]);
     }
 
     return profile;
@@ -249,6 +252,32 @@ export class OfflineGameEngine {
       const sub = subjects[0];
       sub.totalMinutes = (sub.totalMinutes || 0) + minutes;
       saveJson(KEY_SUBJECTS, subjects);
+    }
+
+    // Evolução da Equipe Ativa: estudar juntos aumenta o nível de amizade (até o Nível 5)
+    if (!interrupted && minutes > 0) {
+      const team = this.getTeam();
+      const collection = this.getCollection();
+      let collChanged = false;
+
+      team.activeTeam.forEach((member) => {
+        const item = collection.find((p) => p.id === member.id);
+        if (item) {
+          const currentStudy = ((item as unknown as { studyMinutes?: number }).studyMinutes || 0) + minutes;
+          (item as unknown as { studyMinutes?: number }).studyMinutes = currentStudy;
+
+          // A cada 25 minutos estudados juntos na equipe, sobe 1 Nível de Amizade (máximo 5)
+          const newLevel = Math.min(5, 1 + Math.floor(currentStudy / 25));
+          if (newLevel > item.friendshipLevel) {
+            item.friendshipLevel = newLevel;
+            collChanged = true;
+          }
+        }
+      });
+
+      if (collChanged) {
+        saveJson(KEY_COLLECTION, collection);
+      }
     }
 
     // Salva histórico recente
@@ -405,7 +434,8 @@ export class OfflineGameEngine {
     if (isRecruited) {
       target.isAlreadyRecruited = true;
       const collection = this.getCollection();
-      if (!collection.some((p) => p.pokemonId === target.pokemonId)) {
+      const existing = collection.find((p) => p.pokemonId === target.pokemonId);
+      if (!existing) {
         const meta = AVAILABLE_POKEMON_CATALOG[target.pokemonId] || {
           id: target.pokemonId,
           name: target.pokemonName,
@@ -424,6 +454,16 @@ export class OfflineGameEngine {
           recruitedAt: new Date().toISOString(),
         };
         collection.push(recruitedPokemon);
+        saveJson(KEY_COLLECTION, collection);
+      } else {
+        // Se já está na coleção, reencontrá-lo e alimentá-lo sobe o nível de vínculo da espécie!
+        if (existing.friendshipLevel < 5) {
+          existing.friendshipLevel += 1;
+        }
+        if (!existing.discoveredStyles.includes(target.sleepStyle)) {
+          existing.discoveredStyles.push(target.sleepStyle);
+        }
+        recruitedPokemon = existing;
         saveJson(KEY_COLLECTION, collection);
       }
     } else {
@@ -452,9 +492,16 @@ export class OfflineGameEngine {
 
   public getTeam(): TeamResponse {
     const collection = this.getCollection();
-    const activeIds = loadJson<string[]>(KEY_ACTIVE_TEAM, []);
+    let activeIds = loadJson<string[]>(KEY_ACTIVE_TEAM, []);
     const byId = new Map(collection.map((p) => [p.id, p]));
-    const activeTeam = activeIds.map((id) => byId.get(id)).filter((p): p is UserPokemon => p !== undefined && p !== null);
+    let activeTeam = activeIds.map((id) => byId.get(id)).filter((p): p is UserPokemon => p !== undefined && p !== null);
+
+    // Auto-recuperação garantida: se a equipe ativa estiver vazia mas houver Pokémon na coleção,
+    // define o primeiro Pokémon da coleção (ou Caterpie) como líder ativo
+    if (activeTeam.length === 0 && collection.length > 0) {
+      activeTeam = [collection[0]];
+      saveJson(KEY_ACTIVE_TEAM, [collection[0].id]);
+    }
 
     return {
       activeTeam,

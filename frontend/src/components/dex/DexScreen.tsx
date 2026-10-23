@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Camera, Sparkles, Star, X } from 'lucide-react';
 import { useGame } from '../../hooks/useGameState';
@@ -84,8 +85,18 @@ export function DexScreen() {
   };
 
 
+  const portalRoot = typeof document !== 'undefined'
+    ? (document.getElementById('mobile-frame-root') || document.body)
+    : null;
+
   return (
-    <section className="absolute inset-0 z-20 overflow-y-auto bg-cream px-4 pb-28 pt-[84px] no-scrollbar" aria-label="Focus Dex">
+    <>
+      <section
+        className={`absolute inset-0 z-20 bg-cream px-4 pb-28 pt-[84px] no-scrollbar ${
+          open ? 'overflow-hidden pointer-events-none' : 'overflow-y-auto'
+        }`}
+        aria-label="Focus Dex"
+      >
       <div className="flex items-center justify-between">
         <div>
           <span className="text-[10px] font-black uppercase tracking-wider text-leaf-dark">Enciclopédia de Estudos</span>
@@ -263,87 +274,96 @@ export function DexScreen() {
           </motion.ul>
         )
       )}
+      </section>
 
-      {/* Modal inferior com os 3 estilos de sono */}
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            className="absolute inset-0 z-30 flex items-end bg-black/50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setOpen(null)}
-          >
-            <motion.div
-              onClick={(ev) => ev.stopPropagation()}
-              initial={{ y: 400 }}
-              animate={{ y: 0 }}
-              exit={{ y: 400 }}
-              transition={{ type: 'spring', stiffness: 260, damping: 28 }}
-              className="w-full rounded-t-[2.2rem] bg-white p-5 pb-8 shadow-[0_-10px_35px_rgba(0,0,0,0.3)]"
-            >
-              <div className="mb-3 flex items-center justify-between border-b border-ink/10 pb-3">
-                <div>
-                  <span className="text-[10px] font-black uppercase text-leaf-dark">#{String(open.pokemonId).padStart(4, '0')}</span>
-                  <h2 className="text-xl font-black text-ink">{open.isSeen ? open.pokemonName : '???'}</h2>
-                </div>
-                <button
-                  onClick={() => { sfx.tap(); setOpen(null); }}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-cream text-ink/70 active:scale-90"
-                  aria-label="Fechar"
+      {/* Modal inferior com os 3 estilos de sono desacoplado da rolagem via Portal */}
+      {portalRoot &&
+        createPortal(
+          <AnimatePresence>
+            {open && (
+              <motion.div
+                key="dex-bottom-sheet-backdrop"
+                className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-[2px] sm:absolute"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setOpen(null)}
+              >
+                <motion.div
+                  key="dex-bottom-sheet-content"
+                  onClick={(ev) => ev.stopPropagation()}
+                  initial={{ y: '100%' }}
+                  animate={{ y: 0 }}
+                  exit={{ y: '100%' }}
+                  transition={{ type: 'spring', stiffness: 280, damping: 28 }}
+                  className="fixed bottom-0 left-0 right-0 z-50 w-full rounded-t-3xl bg-white px-5 pb-8 pt-5 shadow-2xl sm:absolute sm:max-w-md sm:mx-auto"
                 >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2.5">
-                {stylesOf(open).map((s) => {
-                  const styleNum = s.style as SleepStyle;
-                  return (
-                    <button
-                      key={s.style}
-                      disabled={!s.isUnlocked}
-                      onClick={() => openPolaroid(open, styleNum, s.discoveredShiny)}
-                      className={`relative flex flex-col items-center gap-1 rounded-2xl p-2 transition-all ${
-                        s.isUnlocked
-                          ? 'border border-leaf/40 bg-[#f0faf7] active:scale-95 hover:border-leaf'
-                          : 'border border-ink/10 bg-cream/50 opacity-60'
-                      }`}
-                    >
-                      <div className="aspect-square w-full">
-                        <PokemonImage
-                          pokemonId={open.pokemonId}
-                          style={styleNum}
-                          variant={s.discoveredShiny ? 'shiny' : 'regular'}
-                          silhouette={!s.isUnlocked}
-                          className="h-full w-full object-contain"
-                        />
-                      </div>
-                      <span className="text-center text-[10px] font-black leading-tight text-ink">
-                        {s.isUnlocked ? STYLE_NAMES[styleNum] : 'Bloqueada'}
+                  <div className="mb-3 flex items-center justify-between border-b border-ink/10 pb-3">
+                    <div>
+                      <span className="text-[10px] font-black uppercase text-leaf-dark">
+                        #{String(open.pokemonId).padStart(4, '0')}
                       </span>
-                      {s.isUnlocked && (
-                        <span className="flex items-center gap-0.5 text-[9px] font-extrabold text-leaf-dark">
-                          <Camera size={10} /> Ver foto
-                        </span>
-                      )}
-                      {s.discoveredShiny && (
-                        <span className="text-[9px] font-black text-warm-orange">✨ Shiny</span>
-                      )}
+                      <h2 className="text-xl font-black text-ink">{open.isSeen ? open.pokemonName : '???'}</h2>
+                    </div>
+                    <button
+                      onClick={() => { sfx.tap(); setOpen(null); }}
+                      className="flex h-9 w-9 items-center justify-center rounded-full bg-cream text-ink/70 active:scale-90"
+                      aria-label="Fechar"
+                    >
+                      <X size={18} />
                     </button>
-                  );
-                })}
-              </div>
+                  </div>
 
-              <p className="mt-4 text-center text-xs font-bold text-ink/60">
-                {open.isRecruited
-                  ? '⭐ Já faz parte da sua coleção de Study Buddies!'
-                  : 'Complete Pomodoros e alimente-o no Descanso para recrutá-lo! 🍪'}
-              </p>
-            </motion.div>
-          </motion.div>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {stylesOf(open).map((s) => {
+                      const styleNum = s.style as SleepStyle;
+                      return (
+                        <button
+                          key={s.style}
+                          disabled={!s.isUnlocked}
+                          onClick={() => openPolaroid(open, styleNum, s.discoveredShiny)}
+                          className={`relative flex flex-col items-center gap-1 rounded-2xl p-2 transition-all ${
+                            s.isUnlocked
+                              ? 'border border-leaf/40 bg-[#f0faf7] active:scale-95 hover:border-leaf'
+                              : 'border border-ink/10 bg-cream/50 opacity-60'
+                          }`}
+                        >
+                          <div className="aspect-square w-full">
+                            <PokemonImage
+                              pokemonId={open.pokemonId}
+                              style={styleNum}
+                              variant={s.discoveredShiny ? 'shiny' : 'regular'}
+                              silhouette={!s.isUnlocked}
+                              className="h-full w-full object-contain"
+                            />
+                          </div>
+                          <span className="text-center text-[10px] font-black leading-tight text-ink">
+                            {s.isUnlocked ? STYLE_NAMES[styleNum] : 'Bloqueada'}
+                          </span>
+                          {s.isUnlocked && (
+                            <span className="flex items-center gap-0.5 text-[9px] font-extrabold text-leaf-dark">
+                              <Camera size={10} /> Ver foto
+                            </span>
+                          )}
+                          {s.discoveredShiny && (
+                            <span className="text-[9px] font-black text-warm-orange">✨ Shiny</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <p className="mt-4 text-center text-xs font-bold text-ink/60">
+                    {open.isRecruited
+                      ? '⭐ Já faz parte da sua coleção de Study Buddies!'
+                      : 'Complete Pomodoros e alimente-o no Descanso para recrutá-lo! 🍪'}
+                  </p>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          portalRoot
         )}
-      </AnimatePresence>
 
       {/* Modal Polaroid para visualização em 3D */}
       <AnimatePresence>
@@ -356,6 +376,6 @@ export function DexScreen() {
           />
         )}
       </AnimatePresence>
-    </section>
+    </>
   );
 }
