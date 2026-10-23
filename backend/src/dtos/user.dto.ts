@@ -16,6 +16,7 @@ export interface UserProfileDTO {
   inventory: BiscuitInventoryDTO;
   activeEnvironment: string;        // ex: 'greengrass', 'beach', 'tundra', 'cave', 'study_room'
   activeTeamPokemonIds: string[];   // IDs dos 5 Pokémon ativos na mesa
+  hasCompletedOnboarding: boolean;  // Flag que indica se o usuário concluiu o tutorial do Prof. Ricardo
   createdAt: string;
 }
 

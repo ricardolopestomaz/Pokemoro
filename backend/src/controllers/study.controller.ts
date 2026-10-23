@@ -30,6 +30,33 @@ export function createStudyController(studyService = new StudyService()): Router
     }
   });
 
+  // PUT /api/study/subjects/:id
+  router.put('/subjects/:id', (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const subjectId = String(req.params.id);
+      const { name, color, icon } = req.body;
+
+      const updated = studyService.updateSubject(userId, subjectId, { name, color, icon });
+      res.json(updated);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // DELETE /api/study/subjects/:id
+  router.delete('/subjects/:id', (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const subjectId = String(req.params.id);
+
+      const result = studyService.deleteSubject(userId, subjectId);
+      res.json(result);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
   // POST /api/study/sessions/start
   router.post('/sessions/start', (req: Request, res: Response) => {
     try {

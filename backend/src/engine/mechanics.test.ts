@@ -155,6 +155,50 @@ test('Mecânica: Equipe de 5 Study Buddies e Focus Dex', () => {
   assert.ok(dex.entries.find((e: any) => e.pokemonId === 10)?.isRecruited);
 });
 
+test('Mecânica: Cronômetro Modo Livre exige no mínimo 10 min para atrair exatamente 1 Pokémon', () => {
+  const sessionRepo = new StudySessionRepository();
+  const userRepo = new UserRepository();
+  const userId = crypto.randomUUID();
+  userRepo.createInitialUser(userId, 'Estudante Livre');
+  const sub = sessionRepo.createSubject(userId, 'Física Quântica', '#9C27B0');
+
+  // 1. Sessão Livre com 8 minutos (< 10 min): apenas moedas, sem coffee break nem pokemon
+  const s1 = sessionRepo.startSession(userId, {
+    subjectId: sub.id,
+    mode: 'FREE_STOPWATCH',
+    targetDurationMinutes: 0,
+  });
+
+  const res1 = sessionRepo.completeSession(userId, {
+    sessionId: s1.sessionId,
+    actualDurationMinutes: 8,
+    interruptedEarly: false,
+    timeSpentOutOfAppSeconds: 0,
+  }, 1);
+
+  assert.equal(res1.isCoffeeBreakUnlocked, false, 'Abaixo de 10 min não deve desbloquear Coffee Break');
+  assert.equal(res1.spawnsCount, 0, 'Abaixo de 10 min não atrai Pokémon');
+  assert.ok(res1.focusCoinsEarned > 0, 'Ganha moedas proporcionais ao tempo estudado');
+
+  // 2. Sessão Livre com 15 minutos (>= 10 min): desbloqueia exatamente 1 Pokémon
+  const s2 = sessionRepo.startSession(userId, {
+    subjectId: sub.id,
+    mode: 'FREE_STOPWATCH',
+    targetDurationMinutes: 0,
+  });
+
+  const res2 = sessionRepo.completeSession(userId, {
+    sessionId: s2.sessionId,
+    actualDurationMinutes: 15,
+    interruptedEarly: false,
+    timeSpentOutOfAppSeconds: 0,
+  }, 1);
+
+  assert.equal(res2.isCoffeeBreakUnlocked, true, 'Com 10 min ou mais deve desbloquear Coffee Break');
+  assert.equal(res2.spawnsCount, 1, 'Modo Livre garante exatamente 1 Pokémon');
+  assert.ok(res2.focusCoinsEarned >= 30, 'Moedas calculadas corretamente');
+});
+
 test.after(() => {
   closeDatabase();
 });

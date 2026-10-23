@@ -52,4 +52,8 @@ export class UserService {
     this.userRepo.deductFocusCoins(userId, totalCost);
     return this.getProfile(userId);
   }
+
+  public completeOnboarding(userId: string, name: string): UserProfileDTO {
+    return this.userRepo.completeOnboarding(userId, name);
+  }
 }

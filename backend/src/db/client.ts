@@ -18,7 +18,7 @@ export function getDatabase(customPath?: string): BetterSQLite3Database<typeof s
   }
 
   const dbFilePath = customPath || path.join(defaultDir, 'pokemoro.sqlite');
-  sqliteDb = new Database(dbFilePath);
+  sqliteDb = new Database(dbFilePath, { timeout: 7000 });
 
   // Ativa Foreign Keys e WAL mode para alta performance e segurança concorrente
   sqliteDb.pragma('journal_mode = WAL');
@@ -49,12 +49,13 @@ function runBootstrapMigrations(db: Database.Database): void {
       last_study_date TEXT,
       focus_coins INTEGER DEFAULT 0 NOT NULL,
       active_environment TEXT DEFAULT 'greengrass' NOT NULL,
+      has_completed_onboarding INTEGER DEFAULT 0 NOT NULL,
       created_at TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS inventories (
       user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-      biscuits_basic INTEGER DEFAULT 3 NOT NULL,
+      biscuits_basic INTEGER DEFAULT 0 NOT NULL,
       biscuits_great INTEGER DEFAULT 0 NOT NULL,
       biscuits_master INTEGER DEFAULT 0 NOT NULL
     );
@@ -118,7 +119,17 @@ function runBootstrapMigrations(db: Database.Database): void {
       pokemon_id INTEGER NOT NULL,
       sleep_style INTEGER NOT NULL,
       is_shiny INTEGER DEFAULT 0 NOT NULL,
+      photo_data_url TEXT,
       discovered_at TEXT NOT NULL
     );
   `);
+
+  try {
+    db.exec(`ALTER TABLE focus_dex_entries ADD COLUMN photo_data_url TEXT;`);
+  } catch {}
+
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN has_completed_onboarding INTEGER DEFAULT 0 NOT NULL;`);
+  } catch {}
 }
+

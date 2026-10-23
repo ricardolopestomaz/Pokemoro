@@ -1,4 +1,4 @@
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 import { getDatabase } from '../client.js';
 import { studySessions, subjects, users } from '../schema.js';
 import {
@@ -27,6 +27,57 @@ export class StudySessionRepository {
     }).run();
 
     return { id, name, color, icon };
+  }
+
+  public updateSubject(
+    userId: string,
+    subjectId: string,
+    updates: { name?: string; color?: string; icon?: string }
+  ) {
+    const existing = this.db
+      .select()
+      .from(subjects)
+      .where(and(eq(subjects.id, subjectId), eq(subjects.userId, userId)))
+      .get();
+
+    if (!existing) throw new Error('Matéria não encontrada');
+
+    this.db.update(subjects)
+      .set({
+        name: updates.name ?? existing.name,
+        color: updates.color ?? existing.color,
+        icon: updates.icon ?? existing.icon,
+      })
+      .where(and(eq(subjects.id, subjectId), eq(subjects.userId, userId)))
+      .run();
+
+    return this.db
+      .select()
+      .from(subjects)
+      .where(and(eq(subjects.id, subjectId), eq(subjects.userId, userId)))
+      .get();
+  }
+
+  public deleteSubject(userId: string, subjectId: string) {
+    const existing = this.db
+      .select()
+      .from(subjects)
+      .where(and(eq(subjects.id, subjectId), eq(subjects.userId, userId)))
+      .get();
+
+    if (!existing) throw new Error('Matéria não encontrada');
+
+    // Deleta sessões vinculadas à matéria para preservar integridade relacional
+    this.db.delete(studySessions)
+      .where(eq(studySessions.subjectId, subjectId))
+      .run();
+
+    // Deleta a matéria
+    this.db.delete(subjects)
+      .where(and(eq(subjects.id, subjectId), eq(subjects.userId, userId)))
+      .run();
+
+    return { success: true, deletedId: subjectId };
   }
 
   public listSubjects(userId: string) {
@@ -86,13 +137,29 @@ export class StudySessionRepository {
     );
 
     const focusCoinsEarned = Math.round(req.actualDurationMinutes * 2);
-    const isCoffeeBreakUnlocked = !req.interruptedEarly && req.actualDurationMinutes >= session.targetDurationMinutes;
 
+    const isFreeMode = session.mode === 'FREE_STOPWATCH' || session.mode === 'FREE';
+    let isCoffeeBreakUnlocked = false;
     let spawnsCount = 0;
-    if (isCoffeeBreakUnlocked) {
-      if (focusPowerEarned > 600) spawnsCount = 5;
-      else if (focusPowerEarned > 250) spawnsCount = 4;
-      else spawnsCount = 2;
+
+    // Regra do Cronômetro "Modo Livre":
+    // Se actualDurationMinutes < 10: apenas moedas proporcionais, isCoffeeBreakUnlocked = false, 0 Pokémon.
+    // Se actualDurationMinutes >= 10: desbloqueia Coffee Break garantindo exatamente +1 Pokémon.
+    if (isFreeMode) {
+      if (!req.interruptedEarly && req.actualDurationMinutes >= 10) {
+        isCoffeeBreakUnlocked = true;
+        spawnsCount = 1; // Exatamente +1 Pokémon
+      } else {
+        isCoffeeBreakUnlocked = false;
+        spawnsCount = 0;
+      }
+    } else {
+      isCoffeeBreakUnlocked = !req.interruptedEarly && req.actualDurationMinutes >= session.targetDurationMinutes;
+      if (isCoffeeBreakUnlocked) {
+        if (focusPowerEarned > 600) spawnsCount = 5;
+        else if (focusPowerEarned > 250) spawnsCount = 4;
+        else spawnsCount = 2;
+      }
     }
 
     const now = new Date().toISOString();

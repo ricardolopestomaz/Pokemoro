@@ -22,6 +22,14 @@ export class StudyService {
     return this.sessionRepo.createSubject(userId, name, color, icon);
   }
 
+  public updateSubject(userId: string, subjectId: string, updates: { name?: string; color?: string; icon?: string }) {
+    return this.sessionRepo.updateSubject(userId, subjectId, updates);
+  }
+
+  public deleteSubject(userId: string, subjectId: string) {
+    return this.sessionRepo.deleteSubject(userId, subjectId);
+  }
+
   public listSubjects(userId: string) {
     return this.sessionRepo.listSubjects(userId);
   }
@@ -40,11 +48,16 @@ export class StudyService {
     if (summary.isCoffeeBreakUnlocked) {
       const user = this.userRepo.getUserProfile(userId);
       const friendships = this.pokemonRepo.getFriendshipPointsMap(userId);
+      const recruitedIds = this.pokemonRepo.getRecruitedPokemonIds(userId);
+      const discoveredStyles = this.pokemonRepo.getDiscoveredStylesMap(userId);
 
       const spawns = calculateSpawns({
         focusPower: summary.focusPowerEarned,
         streakDays: newStreak,
         existingFriendships: friendships,
+        recruitedPokemonIds: recruitedIds,
+        discoveredDexStyles: discoveredStyles,
+        forcedSpawnCount: summary.spawnsCount,
       });
 
       this.coffeeBreakService.setActiveCoffeeBreak(

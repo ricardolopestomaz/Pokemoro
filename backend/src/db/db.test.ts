@@ -15,7 +15,13 @@ test('Database & Repository: Fluxo completo de estudo, ofensiva e amizade', () =
   const user = userRepo.createInitialUser(crypto.randomUUID(), 'Ash Estudioso');
   assert.ok(user.id);
   assert.equal(user.streakDays, 0);
-  assert.equal(user.inventory.basic, 3);
+  assert.equal(user.inventory.basic, 0);
+  assert.equal(user.hasCompletedOnboarding, false);
+
+  // 1.1 Conclui onboarding e recebe kit inicial e Caterpie
+  const onboardedUser = userRepo.completeOnboarding(user.id, 'Ash Estudioso');
+  assert.equal(onboardedUser.hasCompletedOnboarding, true);
+  assert.equal(onboardedUser.inventory.basic, 3);
 
   // 2. Registra ofensiva de estudo de hoje
   const today = new Date().toISOString().split('T')[0];
@@ -77,9 +83,11 @@ test('Database & Repository: Fluxo completo de estudo, ofensiva e amizade', () =
 
   // 7. Adiciona à equipe de 5 Study Buddies
   pokemonRepo.setActiveTeam(user.id, [recruited.id]);
-  const userTeam = pokemonRepo.listUserPokemon(user.id);
-  assert.equal(userTeam.length, 1);
-  assert.equal(userTeam[0].pokemonId, targetPokemon.pokemonId);
+  const userAllPokemon = pokemonRepo.listUserPokemon(user.id);
+  assert.equal(userAllPokemon.length, 2);
+  const activeTeam = userAllPokemon.filter(p => p.isInActiveTeam);
+  assert.equal(activeTeam.length, 1);
+  assert.equal(activeTeam[0].pokemonId, targetPokemon.pokemonId);
 });
 
 test.after(() => {

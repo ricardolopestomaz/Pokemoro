@@ -1,6 +1,6 @@
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { getDatabase } from '../client.js';
-import { users, inventories, userPokemon } from '../schema.js';
+import { users, inventories, userPokemon, pokemonFriendships, focusDexEntries } from '../schema.js';
 import { UserProfileDTO, BiscuitInventoryDTO } from '../../dtos/user.dto.js';
 import crypto from 'crypto';
 
@@ -20,19 +20,108 @@ export class UserRepository {
       email: email || null,
       streakDays: 0,
       lastStudyDate: null,
-      focusCoins: 100,
+      focusCoins: 0,
       activeEnvironment: 'greengrass',
+      hasCompletedOnboarding: false,
       createdAt: now,
     }).run();
 
     this.db.insert(inventories).values({
       userId: id,
-      biscuitsBasic: 3,  // 3 Biscoitos de café iniciais
-      biscuitsGreat: 1,
+      biscuitsBasic: 0,
+      biscuitsGreat: 0,
       biscuitsMaster: 0,
     }).run();
 
     return this.getUserProfile(id)!;
+  }
+
+  public completeOnboarding(userId: string, name: string): UserProfileDTO {
+    const user = this.db.select().from(users).where(eq(users.id, userId)).get();
+    if (!user) throw new Error('Usuário não encontrado');
+
+    const cleanName = name?.trim() || 'Estudante Pokémoro';
+    const now = new Date().toISOString();
+
+    // 1. Atualiza nome e marca onboarding concluído
+    this.db
+      .update(users)
+      .set({
+        name: cleanName,
+        hasCompletedOnboarding: true,
+      })
+      .where(eq(users.id, userId))
+      .run();
+
+    // 2. Concede kit inicial de boas-vindas do Professor Ricardo (3 Biscoitos de Café + 1 Biscoito Especial)
+    this.db
+      .update(inventories)
+      .set({
+        biscuitsBasic: 3,
+        biscuitsGreat: 1,
+        biscuitsMaster: 0,
+      })
+      .where(eq(inventories.userId, userId))
+      .run();
+
+    // 3. Concede o Caterpie (#0010) como primeiro parceiro oficial e Líder da equipe
+    const existingCaterpie = this.db
+      .select()
+      .from(userPokemon)
+      .where(and(eq(userPokemon.userId, userId), eq(userPokemon.pokemonId, 10)))
+      .get();
+
+    if (!existingCaterpie) {
+      this.db.insert(userPokemon).values({
+        id: crypto.randomUUID(),
+        userId,
+        pokemonId: 10,
+        nickname: 'Caterpie',
+        variant: 'regular',
+        friendshipLevel: 1,
+        isInActiveTeam: true,
+        teamSlot: 1,
+        role: 'ITEMS',
+        passiveBonusDescription: '+20% de Moedas de Foco e biscoitos adicionais nas pausas',
+        recruitedAt: now,
+      }).run();
+
+      this.db.insert(pokemonFriendships).values({
+        id: crypto.randomUUID(),
+        userId,
+        pokemonId: 10,
+        currentPoints: 5,
+        maxPoints: 5,
+        isRecruited: true,
+        updatedAt: now,
+      }).run();
+    } else {
+      this.db
+        .update(userPokemon)
+        .set({ isInActiveTeam: true, teamSlot: 1 })
+        .where(eq(userPokemon.id, existingCaterpie.id))
+        .run();
+    }
+
+    // 4. Registra a pose inicial do Caterpie na Focus Dex (aparece colorido)
+    const existingDex = this.db
+      .select()
+      .from(focusDexEntries)
+      .where(and(eq(focusDexEntries.userId, userId), eq(focusDexEntries.pokemonId, 10), eq(focusDexEntries.sleepStyle, 1)))
+      .get();
+    if (!existingDex) {
+      this.db.insert(focusDexEntries).values({
+        id: crypto.randomUUID(),
+        userId,
+        pokemonId: 10,
+        sleepStyle: 1,
+        isShiny: false,
+        photoDataUrl: null,
+        discoveredAt: now,
+      }).run();
+    }
+
+    return this.getUserProfile(userId)!;
   }
 
   public getUserProfile(userId: string): UserProfileDTO | null {
@@ -60,6 +149,7 @@ export class UserRepository {
       },
       activeEnvironment: user.activeEnvironment,
       activeTeamPokemonIds: teamMembers.map((m) => m.id),
+      hasCompletedOnboarding: Boolean(user.hasCompletedOnboarding),
       createdAt: user.createdAt,
     };
   }

@@ -31,4 +31,16 @@ export class TeamService {
   public getFocusDex(userId: string) {
     return this.pokemonRepo.getFocusDex(userId);
   }
+
+  public saveDexPhoto(
+    userId: string,
+    pokemonId: number,
+    sleepStyle: number,
+    isShiny: boolean,
+    photoDataUrl: string
+  ) {
+    this.pokemonRepo.recordDexEntry(userId, pokemonId, sleepStyle as any, isShiny, photoDataUrl);
+    return { ok: true };
+  }
 }
+

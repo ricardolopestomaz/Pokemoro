@@ -45,5 +45,17 @@ export function createUserController(userService = new UserService()): Router {
     }
   });
 
+  // POST /api/user/complete-onboarding
+  router.post('/complete-onboarding', (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const { name } = req.body;
+      const updated = userService.completeOnboarding(userId, name);
+      res.json(updated);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
   return router;
 }

@@ -55,5 +55,29 @@ export function createTeamController(teamService = new TeamService()): Router {
     }
   });
 
+  // POST /api/team/dex/photo (Salva fotografia capturada no acampamento)
+  router.post('/dex/photo', (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const { pokemonId, sleepStyle, isShiny, photoDataUrl } = req.body;
+
+      if (!pokemonId || !sleepStyle || !photoDataUrl) {
+        return res.status(400).json({ error: 'pokemonId, sleepStyle e photoDataUrl são obrigatórios' });
+      }
+
+      const result = teamService.saveDexPhoto(
+        userId,
+        Number(pokemonId),
+        Number(sleepStyle),
+        Boolean(isShiny),
+        String(photoDataUrl)
+      );
+      res.json(result);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
   return router;
 }
+

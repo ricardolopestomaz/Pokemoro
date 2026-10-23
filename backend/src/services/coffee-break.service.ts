@@ -35,11 +35,8 @@ export class CoffeeBreakService {
 
     CoffeeBreakService.activeSessions.set(userId, data);
 
-    // Registra as poses de sono descobertas na Focus Dex
-    for (const s of spawns) {
-      this.pokemonRepo.recordDexEntry(userId, s.pokemonId, s.sleepStyle, s.variant === 'shiny');
-    }
-
+    // Nota: O registro na Focus Dex agora ocorre exclusivamente quando o usuário
+    // clica no Pokémon, fotografa sua pose e confirma o registro na Polaroid.
     return {
       sessionId,
       focusPower,

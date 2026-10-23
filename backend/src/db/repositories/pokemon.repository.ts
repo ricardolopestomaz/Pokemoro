@@ -26,6 +26,32 @@ export class PokemonRepository {
     return map;
   }
 
+  public getRecruitedPokemonIds(userId: string): Set<number> {
+    const records = this.db
+      .select({ pokemonId: userPokemon.pokemonId })
+      .from(userPokemon)
+      .where(eq(userPokemon.userId, userId))
+      .all();
+    return new Set(records.map((r) => r.pokemonId));
+  }
+
+  public getDiscoveredStylesMap(userId: string): Record<number, number[]> {
+    const records = this.db
+      .select()
+      .from(focusDexEntries)
+      .where(eq(focusDexEntries.userId, userId))
+      .all();
+
+    const map: Record<number, number[]> = {};
+    for (const r of records) {
+      if (!map[r.pokemonId]) map[r.pokemonId] = [];
+      if (!map[r.pokemonId].includes(r.sleepStyle)) {
+        map[r.pokemonId].push(r.sleepStyle);
+      }
+    }
+    return map;
+  }
+
   public feedPokemon(
     userId: string,
     pokemonId: number,
@@ -119,7 +145,8 @@ export class PokemonRepository {
     userId: string,
     pokemonId: number,
     sleepStyle: SleepStyle,
-    isShiny: boolean
+    isShiny: boolean,
+    photoDataUrl?: string
   ): void {
     const existing = this.db
       .select()
@@ -140,8 +167,14 @@ export class PokemonRepository {
         pokemonId,
         sleepStyle,
         isShiny,
+        photoDataUrl: photoDataUrl || null,
         discoveredAt: new Date().toISOString(),
       }).run();
+    } else if (photoDataUrl) {
+      this.db.update(focusDexEntries)
+        .set({ photoDataUrl })
+        .where(eq(focusDexEntries.id, existing.id))
+        .run();
     }
   }
 
@@ -186,6 +219,7 @@ export class PokemonRepository {
           isUnlocked: Boolean(found),
           unlockedAt: found ? found.discoveredAt : null,
           discoveredShiny: found ? found.isShiny : false,
+          photoDataUrl: found ? (found.photoDataUrl || null) : null,
         };
       };
 

@@ -5,6 +5,7 @@ export interface FocusDexStyleDTO {
   isUnlocked: boolean;
   unlockedAt: string | null;
   discoveredShiny: boolean;
+  photoDataUrl?: string | null;
 }
 
 export interface FocusDexEntryDTO {

@@ -11,6 +11,7 @@ export const users = sqliteTable('users', {
   lastStudyDate: text('last_study_date'), // YYYY-MM-DD
   focusCoins: integer('focus_coins').default(0).notNull(),
   activeEnvironment: text('active_environment').default('greengrass').notNull(),
+  hasCompletedOnboarding: integer('has_completed_onboarding', { mode: 'boolean' }).default(false).notNull(),
   createdAt: text('created_at').notNull(),
 });
 
@@ -112,5 +113,7 @@ export const focusDexEntries = sqliteTable('focus_dex_entries', {
   pokemonId: integer('pokemon_id').notNull(),
   sleepStyle: integer('sleep_style').notNull(), // 1, 2 ou 3
   isShiny: integer('is_shiny', { mode: 'boolean' }).default(false).notNull(),
+  photoDataUrl: text('photo_data_url'),
   discoveredAt: text('discovered_at').notNull(),
 });
+
