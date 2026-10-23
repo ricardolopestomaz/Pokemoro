@@ -33,51 +33,33 @@ describe('api/client.ts & api/endpoints.ts', () => {
     await expect(request('/api/coffee-break/feed')).rejects.toThrow('Você não possui biscoitos');
   });
 
-  it('getActiveBreak deve retornar null quando backend responder 404', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 404,
-      text: async () => JSON.stringify({ error: 'Nenhum coffee break ativo' }),
-    });
-
+  it('getActiveBreak deve retornar null quando não houver break ativo', async () => {
     const result = await api.getActiveBreak();
     expect(result).toBeNull();
   });
 
-  it('startSession deve enviar payload com subjectId, mode e targetDurationMinutes', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      text: async () => JSON.stringify({ sessionId: 'sess-123' }),
-    });
-
+  it('startSession deve chamar offlineEngine.startSession e retornar sessionId', async () => {
     const res = await api.startSession('subj-1', 'CLASSIC_25', 25);
-    expect(res.sessionId).toBe('sess-123');
-
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/study/sessions/start'),
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({ subjectId: 'subj-1', mode: 'CLASSIC_25', targetDurationMinutes: 25 }),
-      })
-    );
+    expect(res.sessionId).toBeDefined();
+    expect(typeof res.sessionId).toBe('string');
   });
 
-  it('feed deve enviar spawnId e biscuitType corretamente', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      text: async () => JSON.stringify({ pointsAdded: 3, newFriendshipPoints: 5, isRecruited: true }),
+  it('feed deve chamar offlineEngine.feedPokemon', async () => {
+    // Inicia uma sessão e finaliza para gerar um break
+    await api.startSession('subj-1', 'CLASSIC_25', 25);
+    await api.endSession({
+      durationSeconds: 1500,
+      completedNormally: true,
+      distractionsCount: 0,
+      mode: 'CLASSIC_25',
     });
 
-    const res = await api.feed('spawn-99', 'GREAT');
-    expect(res.isRecruited).toBe(true);
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/coffee-break/feed'),
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({ spawnId: 'spawn-99', biscuitType: 'GREAT' }),
-      })
-    );
+    const activeBreak = await api.getActiveBreak();
+    expect(activeBreak).not.toBeNull();
+    if (activeBreak && activeBreak.spawns.length > 0) {
+      const spawn = activeBreak.spawns[0];
+      const res = await api.feed(spawn.spawnId, 'POKE');
+      expect(res.pointsAdded).toBeGreaterThan(0);
+    }
   });
 });

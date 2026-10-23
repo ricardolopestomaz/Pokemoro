@@ -25,6 +25,33 @@ export function DexScreen() {
   const [open, setOpen] = useState<DexEntry | null>(null);
   const [polaroidPreview, setPolaroidPreview] = useState<SpawnedPokemon | null>(null);
 
+  // Lista de todas as poses individuais descobertas (sprites de sono reais)
+  const discoveredPoses = useMemo(() => {
+    const list: Array<{
+      pokemonId: number;
+      pokemonName: string;
+      style: SleepStyle;
+      isShiny: boolean;
+      photoDataUrl?: string | null;
+      entry: DexEntry;
+    }> = [];
+    for (const e of dex?.entries ?? []) {
+      for (const s of [e.styles.style1, e.styles.style2, e.styles.style3]) {
+        if (s.isUnlocked) {
+          list.push({
+            pokemonId: e.pokemonId,
+            pokemonName: e.pokemonName,
+            style: s.style as SleepStyle,
+            isShiny: s.discoveredShiny,
+            photoDataUrl: s.photoDataUrl || null,
+            entry: e,
+          });
+        }
+      }
+    }
+    return list;
+  }, [dex]);
+
   const entries = useMemo(() => {
     const list = dex?.entries ?? [];
     switch (filter) {
@@ -35,7 +62,7 @@ export function DexScreen() {
     }
   }, [dex, filter]);
 
-  const openPolaroid = (e: DexEntry, styleNum: SleepStyle, isShiny: boolean) => {
+  const openPolaroid = (e: DexEntry, styleNum: SleepStyle, isShiny: boolean, photoDataUrl?: string | null) => {
     sfx.tap();
     const spawnObj: SpawnedPokemon = {
       spawnId: `dex_preview_${e.pokemonId}_${styleNum}`,
@@ -50,10 +77,12 @@ export function DexScreen() {
       isFull: true,
       spriteSleepUrl: '',
       spriteMenuUrl: '',
+      photoDataUrl: photoDataUrl || null,
       canvasPosition: { x: 0.5, y: 0.5 },
     };
     setPolaroidPreview(spawnObj);
   };
+
 
   return (
     <section className="absolute inset-0 z-20 overflow-y-auto bg-cream px-4 pb-28 pt-[84px] no-scrollbar" aria-label="Focus Dex">
@@ -104,56 +133,135 @@ export function DexScreen() {
         ))}
       </div>
 
-      {/* Grid de Cards de Pokémon estilo exemplo-pokemons-vistos.jpg */}
-      {entries.length === 0 ? (
-        <div className="mt-6 rounded-2xl bg-white p-6 text-center text-xs font-bold text-ink/60 shadow-sm">
-          Nenhum registro encontrado nesta categoria. Continue focando para descobrir novas poses! 📚
-        </div>
-      ) : (
-        <motion.ul
-          key={filter}
-          className="mt-3.5 grid grid-cols-4 gap-x-2 gap-y-3.5"
-          initial="hidden"
-          animate="show"
-          variants={{ show: { transition: { staggerChildren: 0.03 } } }}
-        >
-          {entries.map((e) => {
-            const n = unlockedCount(e);
-            const shiny = stylesOf(e).some((s) => s.discoveredShiny);
-            return (
-              <motion.li key={e.pokemonId} variants={{ hidden: { opacity: 0, y: 12, scale: 0.9 }, show: { opacity: 1, y: 0, scale: 1 } }}>
+      {/* 1. Modo Poses Descobertas: Renderiza cada pose de sono real (/sprites/sleep/) */}
+      {filter === 'poses' ? (
+        discoveredPoses.length === 0 ? (
+          <div className="mt-6 rounded-2xl bg-white p-6 text-center text-xs font-bold text-ink/60 shadow-sm">
+            Nenhuma pose descoberta ainda! Complete sessões de foco para registrar os Pokémon dormindo. 📸🍃
+          </div>
+        ) : (
+          <motion.ul
+            key="poses-grid"
+            className="mt-3.5 grid grid-cols-2 gap-3"
+            initial="hidden"
+            animate="show"
+            variants={{ show: { transition: { staggerChildren: 0.04 } } }}
+          >
+            {discoveredPoses.map((pose, idx) => (
+              <motion.li
+                key={`${pose.pokemonId}-${pose.style}-${idx}`}
+                variants={{ hidden: { opacity: 0, y: 12, scale: 0.9 }, show: { opacity: 1, y: 0, scale: 1 } }}
+              >
                 <button
-                  id={`dex-${e.pokemonId}`}
-                  onClick={() => { sfx.tap(); setOpen(e); }}
-                  className="flex w-full flex-col items-center gap-1 transition-transform active:scale-90"
+                  id={`dex-pose-${pose.pokemonId}-${pose.style}`}
+                  onClick={() => openPolaroid(pose.entry, pose.style, pose.isShiny, pose.photoDataUrl)}
+                  className="group relative flex w-full flex-col items-center rounded-2xl border-2 border-white/80 bg-white p-2.5 shadow-sm transition-all active:scale-95 hover:border-leaf/60 hover:shadow-md"
                 >
-                  <div className={`medal aspect-square w-full overflow-hidden border-2 ${
-                    e.isSeen ? 'border-white/90 bg-white' : 'medal-locked border-transparent !bg-ink/5'
-                  }`}>
-                    <PokemonImage
-                      pokemonId={e.pokemonId}
-                      menu
-                      silhouette={!e.isSeen}
-                      className="h-full w-full object-contain"
-                      alt={e.isSeen ? e.pokemonName : 'Desconhecido'}
-                    />
-                    {e.isRecruited && (
-                      <Star size={14} className="absolute -right-1 -top-1" fill="#ffcb05" color="#d9a800" />
+                  {/* Badges superiores: Estilo e Shiny */}
+                  <div className="flex w-full items-center justify-between">
+                    <span className="rounded-full bg-leaf/15 px-2 py-0.5 text-[9px] font-black text-leaf-dark">
+                      Estilo {pose.style}
+                    </span>
+                    {pose.isShiny && (
+                      <span className="flex items-center gap-0.5 rounded-full bg-warm-orange/15 px-1.5 py-0.5 text-[9px] font-black text-warm-orange">
+                        <Sparkles size={10} /> Shiny
+                      </span>
                     )}
-                    {shiny && <span className="absolute -left-1 -top-1 text-xs">✨</span>}
                   </div>
 
-                  <div className="h-1.5 w-[80%] overflow-hidden rounded-full bg-ink/10">
-                    <div className="h-full rounded-full bg-leaf" style={{ width: `${(n / 3) * 100}%` }} />
+                  {/* Fotografia real ou sprite da pose de sono */}
+                  {pose.photoDataUrl ? (
+                    <div className="relative my-1.5 aspect-square w-full overflow-hidden rounded-xl border border-ink/10 shadow-inner">
+                      <img
+                        src={pose.photoDataUrl}
+                        alt={`${pose.pokemonName} - Estilo ${pose.style}`}
+                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                      />
+                      <span className="absolute bottom-1 right-1 rounded-md bg-black/60 px-1 py-0.5 text-[8px] font-black text-white">
+                        📷 Foto
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="my-1.5 aspect-square w-full">
+                      <PokemonImage
+                        pokemonId={pose.pokemonId}
+                        style={pose.style}
+                        variant={pose.isShiny ? 'shiny' : 'regular'}
+                        className="h-full w-full object-contain transition-transform group-hover:scale-105"
+                        alt={`${pose.pokemonName} - Estilo ${pose.style}`}
+                      />
+                    </div>
+                  )}
+
+                  {/* Nome do Pokémon e Nome do Estilo */}
+                  <div className="w-full text-center">
+                    <div className="truncate text-xs font-black text-ink">{pose.pokemonName}</div>
+                    <div className="text-[10px] font-bold text-ink/60">
+                      {STYLE_NAMES[pose.style]} {'★'.repeat(pose.style)}
+                    </div>
                   </div>
-                  <span className="max-w-full truncate text-[10px] font-black text-ink">
-                    {e.isSeen ? e.pokemonName : '???'}
+
+                  <span className="mt-1.5 flex items-center gap-1 text-[9px] font-black text-leaf-dark">
+                    <Camera size={11} /> Ver Foto
                   </span>
                 </button>
               </motion.li>
-            );
-          })}
-        </motion.ul>
+            ))}
+          </motion.ul>
+        )
+      ) : (
+        /* 2. Grid Geral da Dex estilo medalha */
+        entries.length === 0 ? (
+          <div className="mt-6 rounded-2xl bg-white p-6 text-center text-xs font-bold text-ink/60 shadow-sm">
+            Nenhum registro encontrado nesta categoria. Continue focando para descobrir novos amigos! 📚
+          </div>
+        ) : (
+          <motion.ul
+            key={filter}
+            className="mt-3.5 grid grid-cols-4 gap-x-2 gap-y-3.5"
+            initial="hidden"
+            animate="show"
+            variants={{ show: { transition: { staggerChildren: 0.03 } } }}
+          >
+            {entries.map((e) => {
+              const n = unlockedCount(e);
+              const shiny = stylesOf(e).some((s) => s.discoveredShiny);
+              return (
+                <motion.li key={e.pokemonId} variants={{ hidden: { opacity: 0, y: 12, scale: 0.9 }, show: { opacity: 1, y: 0, scale: 1 } }}>
+                  <button
+                    id={`dex-${e.pokemonId}`}
+                    onClick={() => { sfx.tap(); setOpen(e); }}
+                    className="flex w-full flex-col items-center gap-1 transition-transform active:scale-90"
+                  >
+                    <div className={`medal relative aspect-square w-full overflow-hidden border-2 ${
+                      e.isSeen ? 'border-white/90 bg-white' : 'medal-locked border-transparent !bg-ink/5'
+                    }`}>
+                      <PokemonImage
+                        pokemonId={e.pokemonId}
+                        menu
+                        variant={shiny ? 'shiny' : 'regular'}
+                        silhouette={!e.isSeen}
+                        className="h-full w-full object-contain"
+                        alt={e.isSeen ? e.pokemonName : 'Desconhecido'}
+                      />
+                      {e.isRecruited && (
+                        <Star size={14} className="absolute -right-1 -top-1" fill="#ffcb05" color="#d9a800" />
+                      )}
+                      {shiny && <span className="absolute -left-1 -top-1 text-xs">✨</span>}
+                    </div>
+
+                    <div className="h-1.5 w-[80%] overflow-hidden rounded-full bg-ink/10">
+                      <div className="h-full rounded-full bg-leaf" style={{ width: `${(n / 3) * 100}%` }} />
+                    </div>
+                    <span className="max-w-full truncate text-[10px] font-black text-ink">
+                      {e.isSeen ? e.pokemonName : '???'}
+                    </span>
+                  </button>
+                </motion.li>
+              );
+            })}
+          </motion.ul>
+        )
       )}
 
       {/* Modal inferior com os 3 estilos de sono */}
@@ -242,6 +350,7 @@ export function DexScreen() {
         {polaroidPreview && (
           <PolaroidModal
             spawn={polaroidPreview}
+            photoDataUrl={polaroidPreview.photoDataUrl}
             onRegister={() => setPolaroidPreview(null)}
             onClose={() => setPolaroidPreview(null)}
           />

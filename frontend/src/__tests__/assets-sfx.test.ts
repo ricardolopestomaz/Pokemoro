@@ -74,11 +74,11 @@ describe('lib/assets.ts', () => {
   });
 
   it('ROLE_INFO deve cobrir todos os 5 papéis de estudo', () => {
-    expect(ROLE_INFO.SUBJECT_EXACT.emoji).toBe('⚡');
+    expect(ROLE_INFO.SUBJECT_EXACT.emoji).toBe('🛡️');
     expect(ROLE_INFO.STAMINA.emoji).toBe('🌿');
     expect(ROLE_INFO.ITEMS.emoji).toBe('☕');
     expect(ROLE_INFO.ENERGY.emoji).toBe('🔥');
-    expect(ROLE_INFO.SUBJECT_HUMAN.emoji).toBe('📖');
+    expect(ROLE_INFO.SUBJECT_HUMAN.emoji).toBe('🎯');
   });
 });
 

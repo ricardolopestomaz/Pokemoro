@@ -22,7 +22,8 @@ export function usePomodoroTimer({ targetMinutes, speed = 1, onFinish }: Options
 
   useEffect(() => {
     if (status !== 'running') return;
-    const id = setInterval(() => {
+
+    const tick = () => {
       const secs = ((Date.now() - startRef.current) / 1000) * speed;
       if (targetSeconds > 0 && secs >= targetSeconds) {
         setElapsed(targetSeconds);
@@ -31,15 +32,30 @@ export function usePomodoroTimer({ targetMinutes, speed = 1, onFinish }: Options
       } else {
         setElapsed(secs);
       }
-    }, 250);
-    return () => clearInterval(id);
+    };
+
+    const id = setInterval(tick, 250);
+
+    // Atualização instantânea ao retornar de segundo plano ou alternar de app
+    const onWake = () => { tick(); };
+    document.addEventListener('visibilitychange', onWake);
+    window.addEventListener('focus', onWake);
+    window.addEventListener('pageshow', onWake);
+
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', onWake);
+      window.removeEventListener('focus', onWake);
+      window.removeEventListener('pageshow', onWake);
+    };
   }, [status, speed, targetSeconds]);
 
-  const start = useCallback(() => {
-    startRef.current = Date.now();
-    setElapsed(0);
+  const start = useCallback((customStartTimestamp?: number) => {
+    startRef.current = customStartTimestamp || Date.now();
+    const currentSecs = ((Date.now() - startRef.current) / 1000) * speed;
+    setElapsed(Math.max(0, currentSecs));
     setStatus('running');
-  }, []);
+  }, [speed]);
 
   const stop = useCallback(() => {
     const secs = ((Date.now() - startRef.current) / 1000) * speed;
@@ -55,5 +71,5 @@ export function usePomodoroTimer({ targetMinutes, speed = 1, onFinish }: Options
   const remaining = targetSeconds > 0 ? Math.max(0, targetSeconds - elapsed) : elapsed;
   const progress = targetSeconds > 0 ? Math.min(1, elapsed / targetSeconds) : (elapsed % 60) / 60;
 
-  return { status, elapsed, remaining, progress, start, stop, reset };
+  return { status, elapsed, remaining, progress, start, stop, reset, startTimestamp: startRef.current };
 }

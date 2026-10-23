@@ -4,7 +4,7 @@ import { ClipboardList, Edit3, Heart, Plus, Sparkles, Star, Users, X, Zap } from
 import { api } from '../../api/endpoints';
 import { useGame } from '../../hooks/useGameState';
 import { PokemonImage } from '../campsite/PokemonImage';
-import { ROLE_INFO } from '../../lib/assets';
+import { ROLE_INFO, envUrl } from '../../lib/assets';
 import { sfx } from '../../lib/sfx';
 import type { StudyRole, UserPokemon } from '../../types';
 
@@ -131,51 +131,114 @@ export function TeamScreen() {
         </div>
       </div>
 
-      {/* 2. Meadow Showcase do Líder / Selecionado */}
-      <div className="relative mx-4 mt-2 overflow-hidden rounded-[2rem] border-2 border-white/80 bg-gradient-to-b from-[#63dfa8] to-[#48d0b0] p-4 shadow-md">
-        {/* Folhas de fundo decorativas */}
-        <div className="pointer-events-none absolute inset-0 opacity-20">
-          <div className="absolute left-6 top-4 h-12 w-12 rounded-full border-4 border-white" />
-          <div className="absolute right-8 top-10 h-8 w-8 rounded-full border-4 border-white" />
-          <div className="absolute bottom-4 left-1/3 h-10 w-10 rounded-full border-4 border-white" />
+      {/* 2. Meadow Showcase do Líder com Fundo de Mato Greengrass e Pokémon Dormindo Ampliado */}
+      <div className="relative mx-4 mt-2 overflow-hidden rounded-[2.2rem] border-2 border-white/90 shadow-lg">
+        {/* Fundo de Mato (Greengrass Isle) com enquadramento vibrante */}
+        <img
+          src={envUrl('greengrass')}
+          alt="Mato Greengrass"
+          className="absolute inset-0 h-full w-full object-cover brightness-105 saturate-125"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-leaf-dark/20 to-black/50" />
+
+        {/* Partículas decorativas no fundo */}
+        <div className="pointer-events-none absolute inset-0">
+          <motion.span
+            animate={{ y: [-4, 6, -4], opacity: [0.4, 0.9, 0.4] }}
+            transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+            className="absolute left-6 top-5 text-sm select-none"
+          >
+            ✨
+          </motion.span>
+          <motion.span
+            animate={{ y: [6, -6, 6], opacity: [0.3, 0.8, 0.3] }}
+            transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+            className="absolute right-7 top-12 text-sm select-none"
+          >
+            🍃
+          </motion.span>
         </div>
 
         {/* Botão de Stats */}
         <button
           onClick={() => { sfx.tap(); setShowStatsModal(true); }}
           disabled={!showcased}
-          className="absolute right-3 top-3 z-10 flex flex-col items-center rounded-2xl border border-white/80 bg-white/90 px-2 py-1.5 shadow-sm active:scale-95 disabled:opacity-40"
+          className="absolute right-3 top-3 z-20 flex flex-col items-center rounded-2xl border border-white/80 bg-white/95 px-2.5 py-1.5 shadow-sm backdrop-blur-xs transition-transform active:scale-95 disabled:opacity-40"
           title="Ver estatísticas detalhadas"
         >
           <ClipboardList size={18} className="text-warm-orange-dark" />
           <span className="text-[9px] font-black uppercase text-ink/70">Stats</span>
         </button>
 
-        {/* Sprite e Sombra do Líder */}
-        <div className="relative flex flex-col items-center justify-center py-2">
-          {showcased ? (
-            <motion.div
-              key={showcased.id}
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-              className="relative flex flex-col items-center"
-            >
-              <div className="h-32 w-32 drop-shadow-[0_12px_12px_rgba(0,0,0,0.25)]">
-                <PokemonImage
-                  pokemonId={showcased.pokemonId}
-                  variant={showcased.variant}
-                  alt={showcased.nickname}
-                  className="h-full w-full object-contain"
-                />
-              </div>
-              {/* Sombra elíptica sob o Pokémon */}
-              <div className="-mt-3 h-3 w-28 rounded-[50%] bg-black/20 blur-[2px]" />
-              <div className="mt-2 flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-0.5 shadow-sm">
-                <span className="text-xs font-black text-ink">{showcased.nickname}</span>
-                <span className="text-[10px] font-extrabold text-leaf-dark">Lv. {showcased.friendshipLevel}</span>
-              </div>
-            </motion.div>
+        {/* Todos os Pokémon Ativos no Cenário Greengrass (sem pedestal ou círculo embaixo) */}
+        <div className="relative z-10 flex min-h-[175px] flex-col items-center justify-end px-2 pb-3 pt-8">
+          {activeMembers.some(Boolean) ? (
+            <div className="flex w-full items-end justify-center gap-1 sm:gap-2">
+              {activeMembers.map((member, idx) => {
+                if (!member) return null;
+                const isLeader = idx === 0;
+                const isSelected = highlightedIndex === idx;
+
+                return (
+                  <motion.div
+                    key={member.id}
+                    initial={{ scale: 0.85, opacity: 0, y: 12 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 20, delay: idx * 0.05 }}
+                    onClick={() => {
+                      sfx.tap();
+                      setHighlightedIndex(idx);
+                    }}
+                    className={`relative flex flex-1 max-w-[76px] cursor-pointer flex-col items-center transition-all ${
+                      isSelected ? 'scale-105 z-20' : 'z-10 opacity-90 hover:opacity-100'
+                    }`}
+                  >
+                    {/* Tag flutuante individual do membro */}
+                    <div
+                      className={`mb-1 flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 shadow-sm backdrop-blur-xs transition-colors ${
+                        isSelected
+                          ? 'border-leaf bg-white text-leaf-dark ring-2 ring-leaf/40 font-black'
+                          : 'border-white/80 bg-white/95 text-ink'
+                      }`}
+                    >
+                      {isLeader && (
+                        <span className="rounded-full bg-sleep-yellow px-1 text-[7px] font-black text-ink">
+                          👑
+                        </span>
+                      )}
+                      <span className="max-w-[42px] truncate text-[8px] font-black">{member.nickname}</span>
+                      <span className="text-[7px] font-bold text-leaf-dark">L{member.friendshipLevel}</span>
+                    </div>
+
+                    {/* Sprite Dormindo do Pokémon (SEM NENHUM CÍRCULO/PEDESTAL EMBAIXO) */}
+                    <motion.div
+                      animate={{
+                        scaleY: [1, 1.035, 1],
+                        scaleX: [1, 0.995, 1],
+                        y: [0, -2, 0],
+                      }}
+                      transition={{
+                        duration: 2.8 + idx * 0.25,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      }}
+                      style={{ transformOrigin: '50% 90%' }}
+                      className={`relative flex items-end justify-center ${
+                        isLeader ? 'h-24 w-24 scale-110' : 'h-20 w-20'
+                      }`}
+                    >
+                      <PokemonImage
+                        pokemonId={member.pokemonId}
+                        style={1}
+                        variant={member.variant}
+                        alt={member.nickname}
+                        className="h-full w-full object-contain drop-shadow-md"
+                      />
+                    </motion.div>
+                  </motion.div>
+                );
+              })}
+            </div>
           ) : (
             <div className="flex h-36 flex-col items-center justify-center text-white/90">
               <Sparkles size={32} className="animate-pulse" />
@@ -210,7 +273,7 @@ export function TeamScreen() {
         )}
       </div>
 
-      {/* 4. Os 5 Cards Verticais de Slots (estilo exemplo-teme-pokemon.jpg) */}
+      {/* 4. Os 5 Cards Verticais de Slots (com overflow-visible para o botão X não ser cortado) */}
       <div className="mx-4 mt-3 grid grid-cols-5 gap-1.5">
         {Array.from({ length: MAX_TEAM }).map((_, i) => {
           const p = activeMembers[i];
@@ -227,17 +290,19 @@ export function TeamScreen() {
                   setHighlightedIndex(i);
                 }
               }}
-              className={`relative flex flex-col items-center justify-between overflow-hidden rounded-2xl border-2 bg-white p-1 pb-2 shadow-sm transition-all ${
+              className={`relative flex flex-col items-center justify-between rounded-2xl border-2 bg-white p-1 pb-2 shadow-sm transition-all ${
                 isHighlighted
                   ? 'border-leaf ring-2 ring-leaf/40 shadow-md'
                   : 'border-ink/10'
               } ${p ? 'cursor-pointer' : 'border-dashed !bg-white/40'}`}
-              style={{ minHeight: '130px' }}
+              style={{ minHeight: '130px', overflow: 'visible' }}
             >
-              {/* Leader Ribbon Badge */}
+              {/* Leader Ribbon Badge com overflow restrito apenas ao badge */}
               {isLeader && (
-                <div className="absolute -left-5 top-1.5 w-20 -rotate-45 bg-warm-orange py-0.5 text-center text-[7px] font-black uppercase tracking-wider text-white shadow">
-                  Leader
+                <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
+                  <div className="absolute -left-5 top-1.5 w-20 -rotate-45 bg-warm-orange py-0.5 text-center text-[7px] font-black uppercase tracking-wider text-white shadow">
+                    Leader
+                  </div>
                 </div>
               )}
 
@@ -273,16 +338,18 @@ export function TeamScreen() {
                     </div>
                   </div>
 
-                  {/* Botão de remover do slot */}
+                  {/* Botão de remover do slot: 100% visível, nunca cortado, com clique tátil */}
                   <button
+                    id={`btn-remove-slot-${i}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleToggle(p.id);
                     }}
-                    className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-love text-white shadow-sm"
+                    className="absolute -top-1.5 -right-1.5 z-30 flex h-5 w-5 items-center justify-center rounded-full bg-love text-white shadow-md ring-2 ring-white transition-transform active:scale-90 hover:scale-110"
                     title={`Remover ${p.nickname}`}
+                    aria-label={`Remover ${p.nickname} da equipe`}
                   >
-                    <X size={10} strokeWidth={3} />
+                    <X size={11} strokeWidth={3} />
                   </button>
                 </>
               ) : (
@@ -303,7 +370,7 @@ export function TeamScreen() {
         <button
           id="btn-auto-pick"
           onClick={handleAutoPick}
-          className="btn btn-ghost flex-1 py-2.5 text-xs text-ink/80 shadow-sm"
+          className="btn btn-ghost flex-1 py-2.5 text-xs font-bold !text-slate-800 border-2 border-slate-300 shadow-sm active:scale-95"
         >
           ✨ Auto-organizar
         </button>
@@ -373,7 +440,7 @@ export function TeamScreen() {
           >
             Todos ({collection.length})
           </button>
-          {(['SUBJECT_EXACT', 'STAMINA', 'ITEMS', 'ENERGY'] as StudyRole[]).map((r) => {
+          {(['SUBJECT_EXACT', 'SUBJECT_HUMAN', 'STAMINA', 'ITEMS', 'ENERGY'] as StudyRole[]).map((r) => {
             const count = collection.filter((p) => p.role === r).length;
             const info = ROLE_INFO[r];
             const active = boxFilter === r;

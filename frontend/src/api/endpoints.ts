@@ -1,45 +1,58 @@
-import { request, ApiError } from './client';
+import { offlineEngine } from '../lib/offline-engine';
 import type {
-  BiscuitType, CoffeeBreak, EndSessionPayload, FeedResponse, FocusDex, PomodoroMode,
-  SessionSummary, StartSessionResponse, Subject, TeamResponse, UserPokemon, UserProfile,
+  BiscuitType,
+  CoffeeBreak,
+  EndSessionPayload,
+  FeedResponse,
+  FocusDex,
+  PomodoroMode,
+  SessionSummary,
+  StartSessionResponse,
+  Subject,
+  TeamResponse,
+  UserPokemon,
+  UserProfile,
 } from '../types';
 
-const post = <T>(path: string, body: unknown) =>
-  request<T>(path, { method: 'POST', body: JSON.stringify(body) });
-
 export const api = {
-  health: () => request<{ status: string }>('/api/health'),
+  health: async () => ({ status: 'ok', mode: 'offline-standalone' }),
 
   // Usuário
-  getProfile: () => request<UserProfile>('/api/user/profile'),
-  setEnvironment: (environment: string) => post<UserProfile>('/api/user/environment', { environment }),
-  buyBiscuits: (biscuitType: BiscuitType, quantity = 1) =>
-    post<UserProfile>('/api/user/biscuits/buy', { biscuitType, quantity }),
+  getProfile: async (): Promise<UserProfile> => offlineEngine.getProfile(),
+  completeOnboarding: async (name: string): Promise<UserProfile> => offlineEngine.completeOnboarding(name),
+  setEnvironment: async (environment: string): Promise<UserProfile> => offlineEngine.setEnvironment(environment),
+  buyBiscuits: async (biscuitType: BiscuitType, quantity = 1): Promise<UserProfile> =>
+    offlineEngine.buyBiscuits(biscuitType, quantity),
 
   // Estudo
-  getSubjects: () => request<Subject[]>('/api/study/subjects'),
-  createSubject: (name: string, color?: string, icon?: string) =>
-    post<Subject>('/api/study/subjects', { name, color, icon }),
-  startSession: (subjectId: string, mode: PomodoroMode, targetDurationMinutes: number) =>
-    post<StartSessionResponse>('/api/study/sessions/start', { subjectId, mode, targetDurationMinutes }),
-  endSession: (payload: EndSessionPayload) => post<SessionSummary>('/api/study/sessions/end', payload),
-  recentSessions: (limit = 10) => request<unknown[]>(`/api/study/sessions/recent?limit=${limit}`),
+  getSubjects: async (): Promise<Subject[]> => offlineEngine.getSubjects(),
+  createSubject: async (name: string, color?: string, icon?: string): Promise<Subject> =>
+    offlineEngine.createSubject(name, color, icon),
+  updateSubject: async (id: string, updates: { name?: string; color?: string; icon?: string }): Promise<Subject> =>
+    offlineEngine.updateSubject(id, updates),
+  deleteSubject: async (id: string): Promise<{ success: boolean; deletedId: string }> =>
+    offlineEngine.deleteSubject(id),
+  startSession: async (subjectId: string, mode: PomodoroMode, targetDurationMinutes: number): Promise<StartSessionResponse> =>
+    offlineEngine.startSession(subjectId, mode, targetDurationMinutes),
+  endSession: async (payload: EndSessionPayload): Promise<SessionSummary> =>
+    offlineEngine.endSession(payload),
+  recentSessions: async (limit = 10): Promise<unknown[]> =>
+    offlineEngine.getRecentSessions(limit),
 
-  // Coffee Break (404 = nenhum ativo)
-  getActiveBreak: async (): Promise<CoffeeBreak | null> => {
-    try {
-      return await request<CoffeeBreak>('/api/coffee-break/active');
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 404) return null;
-      throw e;
-    }
-  },
-  feed: (spawnId: string, biscuitType: BiscuitType) =>
-    post<FeedResponse>('/api/coffee-break/feed', { spawnId, biscuitType }),
+  // Coffee Break
+  getActiveBreak: async (): Promise<CoffeeBreak | null> => offlineEngine.getActiveBreak(),
+  feed: async (spawnId: string, biscuitType: BiscuitType): Promise<FeedResponse> =>
+    offlineEngine.feedPokemon(spawnId, biscuitType),
 
   // Equipe & Dex
-  getTeam: () => request<TeamResponse>('/api/team'),
-  setTeam: (pokemonIds: string[]) => post<TeamResponse>('/api/team', { pokemonIds }),
-  getCollection: () => request<UserPokemon[]>('/api/team/collection'),
-  getDex: () => request<FocusDex>('/api/team/dex'),
+  getTeam: async (): Promise<TeamResponse> => offlineEngine.getTeam(),
+  setTeam: async (pokemonIds: string[]): Promise<TeamResponse> => offlineEngine.setTeam(pokemonIds),
+  getCollection: async (): Promise<UserPokemon[]> => offlineEngine.getCollection(),
+  getDex: async (): Promise<FocusDex> => offlineEngine.getDex(),
+  saveDexPhoto: async (
+    pokemonId: number,
+    sleepStyle: number,
+    photoDataUrl: string,
+    isShiny?: boolean
+  ): Promise<{ ok: boolean }> => offlineEngine.saveDexPhoto(pokemonId, sleepStyle, photoDataUrl, isShiny),
 };

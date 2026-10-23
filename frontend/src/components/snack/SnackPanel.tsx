@@ -22,7 +22,7 @@ const BISCUITS: { type: BiscuitType; key: 'basic' | 'great' | 'master'; label: s
 interface Burst { id: number; kind: 'heart' | 'text'; x: number; text?: string; crit?: boolean }
 
 export function SnackPanel({ spawnId, onClose }: Props) {
-  const { coffeeBreak, profile, patchInventory, patchSpawn, toast, refreshTeam, refreshDex, refreshProfile } = useGame();
+  const { coffeeBreak, profile, patchInventory, patchSpawn, removeSpawn, toast, refreshTeam, refreshDex, refreshProfile } = useGame();
   const spawn: SpawnedPokemon | undefined = coffeeBreak?.spawns.find((s) => s.spawnId === spawnId);
   const [busy, setBusy] = useState<BiscuitType | null>(null);
   const [bursts, setBursts] = useState<Burst[]>([]);
@@ -238,11 +238,12 @@ export function SnackPanel({ spawnId, onClose }: Props) {
               className="btn btn-green mt-2 w-full max-w-xs py-3 text-sm font-black shadow-lg"
               onClick={() => {
                 sfx.tap();
+                removeSpawn(spawn.spawnId);
                 setRecruited(null);
                 onClose();
               }}
             >
-              Adicionar ao Acampamento
+              Adicionar à Pokémon Box
             </button>
           </motion.div>
         )}

@@ -10,17 +10,17 @@ export const ENVIRONMENTS: Record<string, { file: string; label: string; emoji: 
 };
 
 export const envUrl = (env: EnvironmentId | string) =>
-  `${API_BASE}/assets/${(ENVIRONMENTS[env] ?? ENVIRONMENTS.greengrass).file}`;
+  `/assets/${(ENVIRONMENTS[env] ?? ENVIRONMENTS.greengrass).file}`;
 
 const pad = (id: number) => String(id).padStart(4, '0');
 
 export const sleepSprite = (id: number, style: SleepStyle, variant: PokemonVariant = 'regular') =>
-  `${API_BASE}/sprites/sleep/${variant}/${pad(id)}-${style}${variant === 'shiny' ? '_s' : ''}.png`;
+  `/sprites/sleep/${variant}/${pad(id)}-${style}${variant === 'shiny' ? '_s' : ''}.png`;
 
 export const menuSprite = (id: number, variant: PokemonVariant = 'regular') =>
-  `${API_BASE}/sprites/menu/${variant}/${pad(id)}${variant === 'shiny' ? '_s' : ''}.png`;
+  `/sprites/menu/${variant}/${pad(id)}${variant === 'shiny' ? '_s' : ''}.png`;
 
-export const caterpieIcon = `${API_BASE}/assets/icon_caterpie_frente.png`;
+export const caterpieIcon = `/assets/icon_caterpie_frente.png`;
 
 export const STYLE_NAMES: Record<SleepStyle, string> = {
   1: 'Dormindo de Lado',
@@ -35,11 +35,11 @@ export const STYLE_BLURBS: Record<SleepStyle, string> = {
 };
 
 export const ROLE_INFO: Record<StudyRole, { label: string; emoji: string; color: string }> = {
-  SUBJECT_EXACT: { label: 'Exatas & Tech', emoji: '⚡', color: '#FFCB05' },
-  SUBJECT_HUMAN: { label: 'Humanas', emoji: '📖', color: '#A78BFA' },
-  ITEMS: { label: 'Itens & Café', emoji: '☕', color: '#FF8C42' },
-  STAMINA: { label: 'Stamina & Retenção', emoji: '🌿', color: '#48D0B0' },
-  ENERGY: { label: 'Energia & Motivação', emoji: '🔥', color: '#FF5B84' },
+  SUBJECT_EXACT: { label: 'Constância', emoji: '🛡️', color: '#3B82F6' },
+  SUBJECT_HUMAN: { label: 'Foco Profundo', emoji: '🎯', color: '#8B5CF6' },
+  ITEMS: { label: 'Coleta & Café', emoji: '☕', color: '#F59E0B' },
+  STAMINA: { label: 'Resistência & Descanso', emoji: '🌿', color: '#10B981' },
+  ENERGY: { label: 'Motivação & Flow', emoji: '🔥', color: '#EF4444' },
 };
 
 export const formatTime = (totalSeconds: number) => {

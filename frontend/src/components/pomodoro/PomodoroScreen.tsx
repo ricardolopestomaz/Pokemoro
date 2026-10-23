@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Flame, Gauge, Coins, Zap, Clock, Cat } from 'lucide-react';
+import { Flame, Coins, Zap, Clock, Cat } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { api } from '../../api/endpoints';
 import { useGame } from '../../hooks/useGameState';
@@ -28,7 +28,6 @@ export function PomodoroScreen({ onRunningChange }: Props) {
   const { subjects, team, profile, setTab, toast, refreshAll } = useGame();
   const [modeId, setModeId] = useState<PomodoroMode>('CLASSIC_25');
   const [subjectId, setSubjectId] = useState<string | null>(null);
-  const [demo, setDemo] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
   const [confirmQuit, setConfirmQuit] = useState(false);
@@ -44,13 +43,44 @@ export function PomodoroScreen({ onRunningChange }: Props) {
 
   const timer = usePomodoroTimer({
     targetMinutes: mode.minutes,
-    speed: demo ? 60 : 1,
-    onFinish: () => { void submit(false, mode.minutes * 60); },
+    speed: 1,
+    onFinish: () => {
+      if (
+        typeof window !== 'undefined' &&
+        'Notification' in window &&
+        Notification.permission === 'granted' &&
+        document.visibilityState === 'hidden'
+      ) {
+        try {
+          new Notification('Pokémoro - Foco Concluído! 💤', {
+            body: 'Sua sessão de estudos terminou! Venha ver os Pokémon no Coffee Break.',
+            icon: '/assets/icon_caterpie_frente.png',
+          });
+        } catch {}
+      }
+      void submit(false, mode.minutes * 60);
+    },
   });
   const running = timer.status === 'running';
   const vis = usePageVisibility(running);
 
   useEffect(() => { onRunningChange(running); }, [running, onRunningChange]);
+
+  // Recupera sessão ativa de segundo plano caso o navegador tenha recarregado a aba
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('pokemoro_active_session');
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved && saved.sessionId && saved.startTimestamp) {
+          setSessionId(saved.sessionId);
+          if (saved.subjectId) setSubjectId(saved.subjectId);
+          if (saved.modeId) setModeId(saved.modeId);
+          timer.start(saved.startTimestamp);
+        }
+      }
+    } catch {}
+  }, []);
 
   // Aviso de fechar a aba durante a sessão
   useEffect(() => {
@@ -68,8 +98,26 @@ export function PomodoroScreen({ onRunningChange }: Props) {
       const res = await api.startSession(subjectId, mode.id, mode.minutes || 1);
       setSessionId(res.sessionId);
       submitting.current = false;
+      const now = Date.now();
+      try {
+        localStorage.setItem(
+          'pokemoro_active_session',
+          JSON.stringify({
+            sessionId: res.sessionId,
+            subjectId,
+            modeId: mode.id,
+            startTimestamp: now,
+          })
+        );
+      } catch {}
+
+      // Pede permissão para avisar o término em segundo plano
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {});
+      }
+
       sfx.start();
-      timer.start();
+      timer.start(now);
     } catch (e) {
       toast((e as Error).message, 'error');
     } finally {
@@ -81,6 +129,10 @@ export function PomodoroScreen({ onRunningChange }: Props) {
     if (submitting.current || !sessionId) return;
     submitting.current = true;
     setConfirmQuit(false);
+    try {
+      localStorage.removeItem('pokemoro_active_session');
+    } catch {}
+
     const minutes = interrupted
       ? Math.floor(elapsedSeconds / 60)
       : mode.minutes > 0 ? mode.minutes : Math.max(1, Math.round(elapsedSeconds / 60));
@@ -104,12 +156,18 @@ export function PomodoroScreen({ onRunningChange }: Props) {
   }
 
   const quit = () => {
+    try {
+      localStorage.removeItem('pokemoro_active_session');
+    } catch {}
     const secs = timer.stop();
     void submit(mode.minutes === 0 ? false : secs < mode.minutes * 60, secs);
   };
 
   const closeSummary = async () => {
     sfx.tap();
+    try {
+      localStorage.removeItem('pokemoro_active_session');
+    } catch {}
     const unlocked = summary?.isCoffeeBreakUnlocked;
     setSummary(null);
     setSessionId(null);
@@ -156,6 +214,15 @@ export function PomodoroScreen({ onRunningChange }: Props) {
 
         {!running && <SubjectSelector value={subjectId} onChange={setSubjectId} />}
 
+        {mode.id === 'FREE_STOPWATCH' && (
+          <div className="flex items-center gap-2 rounded-2xl border border-white/30 bg-white/20 px-3.5 py-2 text-center text-xs font-bold text-white shadow-sm backdrop-blur-xs">
+            <span>⏱</span>
+            <span>
+              Modo Livre: Estude no mínimo <strong>10 minutos</strong> para atrair 1 Pokémon no descanso. Abaixo de 10 min, acumula apenas Moedas de Foco 🪙.
+            </span>
+          </div>
+        )}
+
         <CircularTimer
           progress={timer.progress}
           seconds={mode.minutes === 0 && running ? timer.elapsed : displaySeconds}
@@ -173,17 +240,9 @@ export function PomodoroScreen({ onRunningChange }: Props) {
               <button id="btn-start-pomodoro" className="btn w-full py-4 text-lg" disabled={busy || !subjectId} onClick={start}>
                 {busy ? 'Preparando...' : 'Iniciar Sessão de Foco'}
               </button>
-              <button
-                id="toggle-demo"
-                onClick={() => { sfx.tap(); setDemo((d) => !d); }}
-                className="mx-auto flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-black text-white/80 ring-1 ring-white/30 active:scale-95"
-                style={{ background: demo ? 'rgba(255,203,5,0.35)' : 'transparent' }}
-              >
-                <Gauge size={12} /> Modo demo (1s = 1min): {demo ? 'LIGADO' : 'desligado'}
-              </button>
             </>
           ) : (
-            <button id="btn-end-session" className="btn btn-ghost w-full py-3.5" onClick={() => (mode.minutes === 0 ? quit() : setConfirmQuit(true))}>
+            <button id="btn-end-session" className="btn btn-ghost w-full py-3.5 font-bold !text-slate-800 border-2 border-slate-300 shadow-md active:scale-95" onClick={() => (mode.minutes === 0 ? quit() : setConfirmQuit(true))}>
               {mode.minutes === 0 ? 'Concluir Sessão' : 'Encerrar Sessão'}
             </button>
           )}

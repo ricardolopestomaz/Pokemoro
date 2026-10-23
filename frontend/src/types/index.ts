@@ -21,6 +21,7 @@ export interface UserProfile {
   inventory: BiscuitInventory;
   activeEnvironment: EnvironmentId | string;
   activeTeamPokemonIds: string[];
+  hasCompletedOnboarding: boolean;
   createdAt: string;
 }
 
@@ -76,6 +77,7 @@ export interface SpawnedPokemon {
   spriteSleepUrl: string;
   spriteMenuUrl: string;
   canvasPosition: { x: number; y: number };
+  photoDataUrl?: string | null;
 }
 
 export interface CoffeeBreak {
@@ -121,6 +123,7 @@ export interface DexStyle {
   isUnlocked: boolean;
   unlockedAt: string | null;
   discoveredShiny: boolean;
+  photoDataUrl?: string | null;
 }
 
 export interface DexEntry {
@@ -138,4 +141,4 @@ export interface FocusDex {
   entries: DexEntry[];
 }
 
-export type TabId = 'focus' | 'rest' | 'team' | 'dex';
+export type TabId = 'focus' | 'rest' | 'journey' | 'team' | 'dex';

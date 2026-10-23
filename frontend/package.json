@@ -11,6 +11,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
     "canvas-confetti": "^1.9.3",
     "framer-motion": "^11.11.0",
     "lucide-react": "^0.460.0",

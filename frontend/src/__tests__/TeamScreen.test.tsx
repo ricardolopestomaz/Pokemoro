@@ -98,10 +98,10 @@ describe('components/team/TeamScreen', () => {
     expect(screen.getByText(/4\/50/i)).toBeInTheDocument();
 
     // Filtros por botões específicos
-    expect(screen.getByRole('button', { name: /Exatas/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Stamina/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Itens/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Energia/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Constância/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Resistência/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Coleta/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Motivação/i })).toBeInTheDocument();
   });
 
   it('deve auto-organizar a equipe ao clicar em "✨ Auto-organizar"', () => {

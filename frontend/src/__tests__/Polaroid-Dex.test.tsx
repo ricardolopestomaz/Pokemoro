@@ -74,26 +74,32 @@ vi.mock('../hooks/useGameState', () => ({
 }));
 
 describe('components/dex/PolaroidModal', () => {
-  it('deve renderizar o card fotográfico com nome do Pokémon e estilo', () => {
+  it('deve renderizar o card fotográfico de nova descoberta com recompensas', () => {
+    // Style 3 não está desbloqueado no mockDex (é nova descoberta)
+    const newSpawn: SpawnedPokemon = { ...mockSpawn, sleepStyle: 3 };
+
     render(
       <PolaroidModal
-        spawn={mockSpawn}
+        spawn={newSpawn}
         onRegister={vi.fn()}
         onClose={vi.fn()}
       />
     );
 
     expect(screen.getByText(/#0001 Bulbasaur/i)).toBeInTheDocument();
-    expect(screen.getByText(/Dormindo de Lado/i)).toBeInTheDocument();
+    expect(screen.getByText(/Dormindo de Barriga/i)).toBeInTheDocument();
     expect(screen.getByText(/🍪 \+1 Biscoito/i)).toBeInTheDocument();
     expect(screen.getByText(/🪙 \+25 Moedas/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Registrar na Focus Dex/i })).toBeInTheDocument();
   });
 
-  it('deve chamar onRegister ao clicar em "Registrar na Focus Dex"', async () => {
+  it('deve chamar onRegister ao clicar em "Registrar na Focus Dex" para nova pose', async () => {
     const onRegister = vi.fn();
+    const newSpawn: SpawnedPokemon = { ...mockSpawn, sleepStyle: 3 };
+
     render(
       <PolaroidModal
-        spawn={mockSpawn}
+        spawn={newSpawn}
         onRegister={onRegister}
         onClose={vi.fn()}
       />
@@ -105,6 +111,22 @@ describe('components/dex/PolaroidModal', () => {
     await vi.waitFor(() => {
       expect(onRegister).toHaveBeenCalled();
     });
+  });
+
+  it('deve indicar que a pose já foi catalogada e não permitir registrar novamente', () => {
+    // Style 1 já está desbloqueado no mockDex
+    render(
+      <PolaroidModal
+        spawn={mockSpawn}
+        onRegister={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/Pose já catalogada na Focus Dex/i)).toBeInTheDocument();
+    expect(screen.queryByText(/🍪 \+1 Biscoito/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Continuar/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Registrar na Focus Dex/i })).not.toBeInTheDocument();
   });
 });
 

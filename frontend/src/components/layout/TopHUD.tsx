@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Coins, Cookie, Flame, Zap } from 'lucide-react';
 import { useGame } from '../../hooks/useGameState';
-import { caterpieIcon } from '../../lib/assets';
+import { caterpieIcon, envUrl } from '../../lib/assets';
 import { PokemonImage } from '../campsite/PokemonImage';
 import { ProfileModal } from '../profile/ProfileModal';
 import { sfx } from '../../lib/sfx';
@@ -17,6 +17,7 @@ export function TopHUD({ onShop }: Props) {
   const { profile, coffeeBreak } = useGame();
   const [profileModal, setProfileModal] = useState(false);
   const [avatar, setAvatar] = useState<string>(() => localStorage.getItem('pokemoro_avatar') || 'caterpie');
+  const [avatarBg, setAvatarBg] = useState<string>(() => localStorage.getItem('pokemoro_avatar_bg') || 'greengrass');
 
   const now = new Date();
   const day = now.getDate();
@@ -26,9 +27,11 @@ export function TopHUD({ onShop }: Props) {
   const pct = Math.min(100, Math.max(5, (fp / 600) * 100));
   const biscuits = profile ? profile.inventory.basic + profile.inventory.great + profile.inventory.master : 0;
 
-  const handleSelectAvatar = (newIcon: string) => {
+  const handleSelectAvatar = (newIcon: string, newBg: string) => {
     setAvatar(newIcon);
+    setAvatarBg(newBg);
     localStorage.setItem('pokemoro_avatar', newIcon);
+    localStorage.setItem('pokemoro_avatar_bg', newBg);
   };
 
   const renderAvatarContent = () => {
@@ -42,14 +45,11 @@ export function TopHUD({ onShop }: Props) {
           menu
           variant={variant}
           alt="Avatar"
-          className="h-full w-full object-contain"
+          className="h-full w-full object-contain scale-135 drop-shadow-md"
         />
       );
     }
-    if (avatar === 'pokeball') return <span className="text-2xl">🔴</span>;
-    if (avatar === 'greatball') return <span className="text-2xl">🔵</span>;
-    if (avatar === 'ultraball') return <span className="text-2xl">🟡</span>;
-    return <img src={caterpieIcon} alt="Avatar" className="h-full w-full object-cover" />;
+    return <img src={caterpieIcon} alt="Avatar" className="h-full w-full object-contain scale-120 drop-shadow-md" />;
   };
 
   return (
@@ -71,17 +71,26 @@ export function TopHUD({ onShop }: Props) {
           </span>
         </button>
 
-        {/* Avatar medal with streak */}
+        {/* Avatar medal com fundo de cenário e streak dourado */}
         <div className="relative shrink-0">
           <button
             onClick={() => { sfx.tap(); setProfileModal(true); }}
-            className="medal flex h-14 w-14 items-center justify-center overflow-hidden border-2 border-white/90 transition-transform active:scale-95"
+            className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-[3px] border-white shadow-md transition-transform active:scale-95"
+            style={{ boxShadow: '0 0 0 3px #ffcb05, 0 4px 8px rgba(0,0,0,0.25)' }}
             aria-label="Alterar avatar"
           >
-            {renderAvatarContent()}
+            {/* Textura do cenário/chão recortada em círculo */}
+            <img
+              src={envUrl(avatarBg)}
+              alt="Cenário de fundo"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div className="relative z-10 flex h-full w-full items-center justify-center p-0.5">
+              {renderAvatarContent()}
+            </div>
           </button>
           <span
-            className="absolute -bottom-1 -right-1 flex items-center gap-0.5 rounded-full bg-warm-orange px-1.5 py-0.5 text-[10px] font-black text-white shadow"
+            className="absolute -bottom-1 -right-1 z-20 flex items-center gap-0.5 rounded-full bg-warm-orange px-1.5 py-0.5 text-[10px] font-black text-white shadow streak-icon"
             title={`${profile?.streakDays ?? 0} dias consecutivos de estudo`}
           >
             <Flame size={10} fill="currentColor" />
@@ -136,6 +145,7 @@ export function TopHUD({ onShop }: Props) {
         {profileModal && (
           <ProfileModal
             currentIcon={avatar}
+            currentBg={avatarBg}
             onSelectIcon={handleSelectAvatar}
             onClose={() => setProfileModal(false)}
           />

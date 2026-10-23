@@ -27,6 +27,7 @@ interface GameState {
   refreshSubjects: () => Promise<void>;
   patchInventory: (inv: BiscuitInventory) => void;
   patchSpawn: (spawnId: string, patch: Partial<SpawnedPokemon>) => void;
+  removeSpawn: (spawnId: string) => void;
   /** Biscoito de café (básico) mostrado no HUD */
   coinsLabel: string;
 }
@@ -85,12 +86,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const removeSpawn = useCallback((spawnId: string) => {
+    setCoffeeBreak((cb) =>
+      cb ? { ...cb, spawns: cb.spawns.filter((s) => s.spawnId !== spawnId) } : cb,
+    );
+  }, []);
+
   const value = useMemo<GameState>(() => ({
     loading, offline, profile, subjects, coffeeBreak, team, collection, dex, tab, setTab, toasts, toast,
-    refreshAll, refreshProfile, refreshBreak, refreshTeam, refreshDex, refreshSubjects, patchInventory, patchSpawn,
+    refreshAll, refreshProfile, refreshBreak, refreshTeam, refreshDex, refreshSubjects, patchInventory, patchSpawn, removeSpawn,
     coinsLabel: String(profile?.focusCoins ?? 0),
   }), [loading, offline, profile, subjects, coffeeBreak, team, collection, dex, tab, toasts, toast,
-    refreshAll, refreshProfile, refreshBreak, refreshTeam, refreshDex, refreshSubjects, patchInventory, patchSpawn]);
+    refreshAll, refreshProfile, refreshBreak, refreshTeam, refreshDex, refreshSubjects, patchInventory, patchSpawn, removeSpawn]);
+
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

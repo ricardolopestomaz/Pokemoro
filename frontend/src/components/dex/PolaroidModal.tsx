@@ -1,7 +1,9 @@
+import { useMemo } from 'react';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
-import { Star } from 'lucide-react';
+import { Star, CheckCircle2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useGame } from '../../hooks/useGameState';
+import { api } from '../../api/endpoints';
 import { PokemonImage } from '../campsite/PokemonImage';
 import { STYLE_BLURBS, STYLE_NAMES, envUrl } from '../../lib/assets';
 import { sfx } from '../../lib/sfx';
@@ -9,18 +11,29 @@ import type { SpawnedPokemon } from '../../types';
 
 interface Props {
   spawn: SpawnedPokemon;
+  photoDataUrl?: string | null;
   onRegister: () => void;
   onClose: () => void;
 }
 
 /** Card de descoberta estilo Polaroid com inclinação 3D. */
-export function PolaroidModal({ spawn, onRegister, onClose }: Props) {
-  const { profile, refreshDex } = useGame();
+export function PolaroidModal({ spawn, photoDataUrl, onRegister, onClose }: Props) {
+  const { profile, refreshDex, dex } = useGame();
   const rx = useMotionValue(0);
   const ry = useMotionValue(0);
   const srx = useSpring(rx, { stiffness: 200, damping: 16 });
   const sry = useSpring(ry, { stiffness: 200, damping: 16 });
   const id4 = String(spawn.pokemonId).padStart(4, '0');
+
+  const displayPhoto = photoDataUrl || spawn.photoDataUrl;
+
+  const isAlreadyRegistered = useMemo(() => {
+    if (!dex?.entries) return false;
+    const entry = dex.entries.find((e) => e.pokemonId === spawn.pokemonId);
+    if (!entry) return false;
+    const styleKey = `style${spawn.sleepStyle}` as 'style1' | 'style2' | 'style3';
+    return Boolean(entry.styles[styleKey]?.isUnlocked);
+  }, [dex, spawn.pokemonId, spawn.sleepStyle]);
 
   const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
@@ -32,6 +45,9 @@ export function PolaroidModal({ spawn, onRegister, onClose }: Props) {
   const register = async () => {
     sfx.fanfare();
     confetti({ particleCount: 140, spread: 80, origin: { y: 0.6 }, colors: ['#ffcb05', '#48d0b0', '#ff5b84', '#4fc3f7'] });
+    if (displayPhoto) {
+      await api.saveDexPhoto(spawn.pokemonId, spawn.sleepStyle, displayPhoto, spawn.variant === 'shiny').catch(() => {});
+    }
     await refreshDex().catch(() => undefined);
     onRegister();
   };
@@ -57,16 +73,26 @@ export function PolaroidModal({ spawn, onRegister, onClose }: Props) {
       >
         <Star className="absolute right-4 top-4 z-10 drop-shadow" size={26} fill="#ffcb05" color="#d9a800" />
 
-        <div className="relative aspect-square overflow-hidden rounded-2xl bg-leaf/30">
-          <img src={envUrl(profile?.activeEnvironment ?? 'greengrass')} alt="" className="absolute inset-0 h-full w-full scale-150 object-cover" />
-          <motion.div
-            className="absolute inset-0 flex items-center justify-center"
-            animate={{ y: [0, -4, 0] }}
-            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <PokemonImage pokemonId={spawn.pokemonId} style={spawn.sleepStyle} variant={spawn.variant} alt={spawn.pokemonName} className="w-[88%] drop-shadow-xl" />
-          </motion.div>
-          <div className="shimmer absolute inset-0" />
+        <div className="relative aspect-square overflow-hidden rounded-2xl bg-leaf/30 border border-ink/10 shadow-inner">
+          {displayPhoto ? (
+            <img
+              src={displayPhoto}
+              alt={spawn.pokemonName}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <>
+              <img src={envUrl(profile?.activeEnvironment ?? 'greengrass')} alt="" className="absolute inset-0 h-full w-full scale-150 object-cover" />
+              <motion.div
+                className="absolute inset-0 flex items-center justify-center"
+                animate={{ y: [0, -4, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <PokemonImage pokemonId={spawn.pokemonId} style={spawn.sleepStyle} variant={spawn.variant} alt={spawn.pokemonName} className="w-[88%] drop-shadow-xl" />
+              </motion.div>
+            </>
+          )}
+          <div className="shimmer absolute inset-0 pointer-events-none" />
         </div>
 
         <div className="mt-4 flex flex-col items-center gap-1.5 text-center">
@@ -80,16 +106,36 @@ export function PolaroidModal({ spawn, onRegister, onClose }: Props) {
           </p>
         </div>
 
-        {/* Recompensa de descoberta inspirada em exemplo-novo-pokemon.webp */}
-        <div className="mt-3 flex items-center justify-center gap-3 rounded-full bg-cream py-1 px-3 text-xs font-black text-ink/80 shadow-inner">
-          <span className="flex items-center gap-1 text-warm-orange">🍪 +1 Biscoito</span>
-          <span className="text-ink/30">/</span>
-          <span className="flex items-center gap-1 text-sleep-yellow-dark">🪙 +25 Moedas</span>
-        </div>
+        {/* Recompensa de descoberta se inédita OU aviso de já catalogada */}
+        {isAlreadyRegistered ? (
+          <div className="mt-3 flex items-center justify-center gap-1.5 rounded-full bg-leaf/15 py-1 px-3 text-xs font-black text-leaf-dark shadow-xs">
+            <CheckCircle2 size={14} />
+            <span>Pose já catalogada na Focus Dex</span>
+          </div>
+        ) : (
+          <div className="mt-3 flex items-center justify-center gap-3 rounded-full bg-cream py-1 px-3 text-xs font-black text-ink/80 shadow-inner">
+            <span className="flex items-center gap-1 text-warm-orange">🍪 +1 Biscoito</span>
+            <span className="text-ink/30">/</span>
+            <span className="flex items-center gap-1 text-sleep-yellow-dark">🪙 +25 Moedas</span>
+          </div>
+        )}
 
-        <button id="btn-register-dex" className="btn mt-3 w-full" onClick={register}>
-          Registrar na Focus Dex
-        </button>
+        {isAlreadyRegistered ? (
+          <button
+            id="btn-register-dex"
+            className="btn btn-green mt-3 w-full"
+            onClick={() => {
+              sfx.tap();
+              onRegister();
+            }}
+          >
+            Continuar
+          </button>
+        ) : (
+          <button id="btn-register-dex" className="btn mt-3 w-full" onClick={register}>
+            📸 Registrar na Focus Dex
+          </button>
+        )}
       </motion.div>
     </motion.div>
   );

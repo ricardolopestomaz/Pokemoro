@@ -18,7 +18,7 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 2,
     "name": "Ivysaur",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "3": {
     "id": 3,
@@ -42,7 +42,7 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 6,
     "name": "Charizard",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "7": {
     "id": 7,
@@ -72,13 +72,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 11,
     "name": "Metapod",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "12": {
     "id": 12,
     "name": "Butterfree",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "19": {
     "id": 19,
@@ -102,13 +102,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 24,
     "name": "Arbok",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "25": {
     "id": 25,
     "name": "Pikachu",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "26": {
     "id": 26,
@@ -132,13 +132,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 35,
     "name": "Clefairy",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "36": {
     "id": 36,
     "name": "Clefable",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "37": {
     "id": 37,
@@ -162,13 +162,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 40,
     "name": "Wigglytuff",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "50": {
     "id": 50,
     "name": "Diglett",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "51": {
     "id": 51,
@@ -192,13 +192,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 54,
     "name": "Psyduck",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "55": {
     "id": 55,
     "name": "Golduck",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "56": {
     "id": 56,
@@ -222,13 +222,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 59,
     "name": "Arcanine",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "69": {
     "id": 69,
     "name": "Bellsprout",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "70": {
     "id": 70,
@@ -252,13 +252,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 75,
     "name": "Graveler",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "76": {
     "id": 76,
     "name": "Golem",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "79": {
     "id": 79,
@@ -276,19 +276,19 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 81,
     "name": "Magnemite",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "82": {
     "id": 82,
     "name": "Magneton",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "83": {
     "id": 83,
     "name": "Farfetchd",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "84": {
     "id": 84,
@@ -312,13 +312,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 93,
     "name": "Haunter",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "94": {
     "id": 94,
     "name": "Gengar",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "95": {
     "id": 95,
@@ -342,19 +342,19 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 113,
     "name": "Chansey",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "115": {
     "id": 115,
     "name": "Kangaskhan",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "122": {
     "id": 122,
     "name": "Mr-mime",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "127": {
     "id": 127,
@@ -378,7 +378,7 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 134,
     "name": "Vaporeon",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "135": {
     "id": 135,
@@ -402,13 +402,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 148,
     "name": "Dragonair",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "149": {
     "id": 149,
     "name": "Dragonite",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "150": {
     "id": 150,
@@ -432,13 +432,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 153,
     "name": "Bayleef",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "154": {
     "id": 154,
     "name": "Meganium",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "155": {
     "id": 155,
@@ -468,7 +468,7 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 159,
     "name": "Croconaw",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "160": {
     "id": 160,
@@ -492,7 +492,7 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 174,
     "name": "Igglybuff",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "175": {
     "id": 175,
@@ -510,25 +510,25 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 177,
     "name": "Natu",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "178": {
     "id": 178,
     "name": "Xatu",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "179": {
     "id": 179,
     "name": "Mareep",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "180": {
     "id": 180,
     "name": "Flaaffy",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "181": {
     "id": 181,
@@ -552,13 +552,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 195,
     "name": "Quagsire",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "196": {
     "id": 196,
     "name": "Espeon",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "197": {
     "id": 197,
@@ -582,13 +582,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 202,
     "name": "Wobbuffet",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "208": {
     "id": 208,
     "name": "Steelix",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "213": {
     "id": 213,
@@ -612,13 +612,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 225,
     "name": "Delibird",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "228": {
     "id": 228,
     "name": "Houndour",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "229": {
     "id": 229,
@@ -642,13 +642,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 244,
     "name": "Entei",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "245": {
     "id": 245,
     "name": "Suicune",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "246": {
     "id": 246,
@@ -672,13 +672,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 252,
     "name": "Treecko",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "253": {
     "id": 253,
     "name": "Grovyle",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "254": {
     "id": 254,
@@ -708,7 +708,7 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 258,
     "name": "Mudkip",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "259": {
     "id": 259,
@@ -726,19 +726,19 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 280,
     "name": "Ralts",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "281": {
     "id": 281,
     "name": "Kirlia",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "282": {
     "id": 282,
     "name": "Gardevoir",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "287": {
     "id": 287,
@@ -762,13 +762,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 302,
     "name": "Sableye",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "303": {
     "id": 303,
     "name": "Mawile",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "304": {
     "id": 304,
@@ -792,13 +792,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 311,
     "name": "Plusle",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "312": {
     "id": 312,
     "name": "Minun",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "316": {
     "id": 316,
@@ -822,13 +822,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 329,
     "name": "Vibrava",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "330": {
     "id": 330,
     "name": "Flygon",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "333": {
     "id": 333,
@@ -852,13 +852,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 354,
     "name": "Banette",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "359": {
     "id": 359,
     "name": "Absol",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "360": {
     "id": 360,
@@ -882,13 +882,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 365,
     "name": "Walrein",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "371": {
     "id": 371,
     "name": "Bagon",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "372": {
     "id": 372,
@@ -912,13 +912,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 381,
     "name": "Latios",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "387": {
     "id": 387,
     "name": "Turtwig",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "388": {
     "id": 388,
@@ -942,7 +942,7 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 391,
     "name": "Monferno",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "392": {
     "id": 392,
@@ -972,13 +972,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 403,
     "name": "Shinx",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "404": {
     "id": 404,
     "name": "Luxio",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "405": {
     "id": 405,
@@ -1002,13 +1002,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 430,
     "name": "Honchkrow",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "438": {
     "id": 438,
     "name": "Bonsly",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "439": {
     "id": 439,
@@ -1032,13 +1032,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 447,
     "name": "Riolu",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "448": {
     "id": 448,
     "name": "Lucario",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "453": {
     "id": 453,
@@ -1062,7 +1062,7 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 460,
     "name": "Abomasnow",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "461": {
     "id": 461,
@@ -1074,7 +1074,7 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 462,
     "name": "Magnezone",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "468": {
     "id": 468,
@@ -1092,13 +1092,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 471,
     "name": "Glaceon",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "475": {
     "id": 475,
     "name": "Gallade",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "488": {
     "id": 488,
@@ -1122,13 +1122,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 518,
     "name": "Musharna",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "557": {
     "id": 557,
     "name": "Dwebble",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "558": {
     "id": 558,
@@ -1152,13 +1152,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 696,
     "name": "Tyrunt",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "697": {
     "id": 697,
     "name": "Tyrantrum",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "700": {
     "id": 700,
@@ -1182,13 +1182,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 710,
     "name": "Pumpkaboo-average",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "711": {
     "id": 711,
     "name": "Gourgeist-average",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "714": {
     "id": 714,
@@ -1212,13 +1212,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 737,
     "name": "Charjabug",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "738": {
     "id": 738,
     "name": "Vikavolt",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "742": {
     "id": 742,
@@ -1242,13 +1242,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 760,
     "name": "Bewear",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "764": {
     "id": 764,
     "name": "Comfey",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "777": {
     "id": 777,
@@ -1272,13 +1272,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 845,
     "name": "Cramorant",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "848": {
     "id": 848,
     "name": "Toxel",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "849": {
     "id": 849,
@@ -1302,13 +1302,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 908,
     "name": "Meowscarada",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "909": {
     "id": 909,
     "name": "Fuecoco",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "910": {
     "id": 910,
@@ -1332,13 +1332,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 913,
     "name": "Quaxwell",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "914": {
     "id": 914,
     "name": "Quaquaval",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "921": {
     "id": 921,
@@ -1362,13 +1362,13 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 957,
     "name": "Tinkatink",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   },
   "958": {
     "id": 958,
     "name": "Tinkatuff",
     "role": "SUBJECT_HUMAN",
-    "bonus": "+15% de memorização e retenção em Humanas e Leituras"
+    "bonus": "+15% de Poder de Foco e concentração sem distrações"
   },
   "959": {
     "id": 959,
@@ -1392,7 +1392,7 @@ export const AVAILABLE_POKEMON_CATALOG: Record<number, PokemonCatalogEntry> = {
     "id": 980,
     "name": "Clodsire",
     "role": "SUBJECT_EXACT",
-    "bonus": "+15% Focus Power em matérias de Exatas e Tecnologia"
+    "bonus": "+15% de constância, retenção e ritmo de estudo"
   }
 };
 

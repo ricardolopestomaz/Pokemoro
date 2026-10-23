@@ -80,11 +80,12 @@ describe('components/layout/TopHUD', () => {
 });
 
 describe('components/layout/BottomNav', () => {
-  it('deve renderizar as 4 abas de navegação (Foco, Descanso, Equipe, Focus Dex)', () => {
+  it('deve renderizar as 5 abas de navegação (Foco, Descanso, Diário, Equipe, Focus Dex)', () => {
     render(<BottomNav />);
 
     expect(screen.getByText('Foco')).toBeInTheDocument();
     expect(screen.getByText('Descanso')).toBeInTheDocument();
+    expect(screen.getByText('Diário')).toBeInTheDocument();
     expect(screen.getByText('Equipe')).toBeInTheDocument();
     expect(screen.getByText('Focus Dex')).toBeInTheDocument();
   });
@@ -94,6 +95,9 @@ describe('components/layout/BottomNav', () => {
 
     fireEvent.click(screen.getByText('Foco'));
     expect(mockSetTab).toHaveBeenCalledWith('focus');
+
+    fireEvent.click(screen.getByText('Diário'));
+    expect(mockSetTab).toHaveBeenCalledWith('journey');
 
     fireEvent.click(screen.getByText('Equipe'));
     expect(mockSetTab).toHaveBeenCalledWith('team');
@@ -110,12 +114,12 @@ describe('components/profile/ProfileModal', () => {
       />
     );
 
-    expect(screen.getByText(/Ícone do Perfil/i)).toBeInTheDocument();
+    expect(screen.getByText(/Foto de Perfil/i)).toBeInTheDocument();
     expect(screen.getByText(/Padrão/i)).toBeInTheDocument();
     expect(screen.getByText(/Pikachu/i)).toBeInTheDocument();
   });
 
-  it('deve chamar onSelectIcon ao selecionar e confirmar novo avatar', () => {
+  it('deve chamar onSelectIcon com o avatar e o fundo de cenário selecionados', () => {
     const onSelectIcon = vi.fn();
     const onClose = vi.fn();
 
@@ -130,7 +134,7 @@ describe('components/profile/ProfileModal', () => {
     fireEvent.click(screen.getByText('Pikachu'));
     fireEvent.click(screen.getByText('Confirmar'));
 
-    expect(onSelectIcon).toHaveBeenCalledWith('poke_25_regular');
+    expect(onSelectIcon).toHaveBeenCalledWith('poke_25_regular', 'greengrass');
     expect(onClose).toHaveBeenCalled();
   });
 });
