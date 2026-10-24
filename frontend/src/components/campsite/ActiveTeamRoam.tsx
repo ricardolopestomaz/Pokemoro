@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useGame } from '../../hooks/useGameState';
 import { PokemonImage } from './PokemonImage';
 import { sfx } from '../../lib/sfx';
 import type { UserPokemon } from '../../types';
@@ -29,6 +30,7 @@ interface BuddyState {
 }
 
 export function ActiveTeamRoam({ team, hasSpawns = false }: Props) {
+  const { settings } = useGame();
   // Inicializa o estado de posição para cada membro da equipe ativa
   const [buddies, setBuddies] = useState<Record<string, BuddyState>>(() => {
     const map: Record<string, BuddyState> = {};
@@ -69,7 +71,7 @@ export function ActiveTeamRoam({ team, hasSpawns = false }: Props) {
 
   // IA de caminhada e interação a cada 4s - 8s aleatórios por Pokémon
   useEffect(() => {
-    if (!team.length) return;
+    if (!team.length || settings?.enableTeamRoaming === false) return;
 
     const timers: ReturnType<typeof setTimeout>[] = [];
 

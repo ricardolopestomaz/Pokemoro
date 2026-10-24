@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BarChart3, Clock, Flame, Zap, Plus, Edit2, Trash2, Check, X, BookOpen, AlertCircle } from 'lucide-react';
+import { BarChart3, Clock, Flame, Zap, Plus, Edit2, Trash2, Check, X, BookOpen, AlertCircle, Trophy } from 'lucide-react';
 import { useGame } from '../../hooks/useGameState';
 import { api } from '../../api/endpoints';
 import { sfx } from '../../lib/sfx';
+import { LeaderboardModal } from '../leaderboard/LeaderboardModal';
 import type { Subject } from '../../types';
 
 const COLOR_PALETTE = [
@@ -28,6 +29,7 @@ interface SessionHistoryItem {
 export function DiaryScreen() {
   const { subjects, profile, coffeeBreak, refreshSubjects, toast } = useGame();
   const [sessions, setSessions] = useState<SessionHistoryItem[]>([]);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   // Modais de Criação, Edição e Exclusão
   const [modalType, setModalType] = useState<'create' | 'edit' | 'delete' | null>(null);
@@ -185,9 +187,20 @@ export function DiaryScreen() {
           </span>
           <h1 className="text-xl font-black text-ink">Diário de Foco</h1>
         </div>
-        <div className="flex items-center gap-1.5 rounded-full bg-leaf/15 px-3 py-1 text-xs font-black text-leaf-dark">
-          <BarChart3 size={15} />
-          <span>Análise</span>
+        <div className="flex items-center gap-2">
+          <button
+            id="btn-diary-leaderboard"
+            onClick={() => { sfx.tap(); setShowLeaderboard(true); }}
+            className="flex items-center gap-1.5 rounded-full border border-[#ffcb05] bg-[#fff9c4] px-2.5 py-1 text-xs font-black text-[#7a5900] shadow-xs transition-transform active:scale-95"
+            title="Ver Ranking Global no Supabase"
+          >
+            <Trophy size={14} fill="#ffcb05" />
+            <span>Ranking</span>
+          </button>
+          <div className="flex items-center gap-1.5 rounded-full bg-leaf/15 px-3 py-1 text-xs font-black text-leaf-dark">
+            <BarChart3 size={15} />
+            <span>Análise</span>
+          </div>
         </div>
       </div>
 
@@ -583,6 +596,13 @@ export function DiaryScreen() {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Ranking Global */}
+      <AnimatePresence>
+        {showLeaderboard && (
+          <LeaderboardModal onClose={() => setShowLeaderboard(false)} />
         )}
       </AnimatePresence>
     </section>

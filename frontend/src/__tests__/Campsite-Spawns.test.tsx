@@ -98,9 +98,9 @@ describe('components/campsite/Campsite', () => {
     expect(screen.getByText(/Amizades de Hoje/i)).toBeInTheDocument();
     expect(screen.getByText(/0 de 1 recrutados/i)).toBeInTheDocument();
 
-    // Clicar no líder dispara toast afetuoso
+    // Clicar no líder abre o balão de fala interativo com emoji e emoções
     fireEvent.click(screen.getByText(/Bulba \(Líder\)/i));
-    expect(mockToast).toHaveBeenCalledWith(expect.stringContaining('Bulba'), 'ok');
+    expect(document.querySelector('.border-rose-400, .border-amber-400, .border-emerald-400, .border-sky-400')).toBeInTheDocument();
   });
 });
 

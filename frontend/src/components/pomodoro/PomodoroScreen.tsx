@@ -29,7 +29,7 @@ interface Props {
 }
 
 export function PomodoroScreen({ onRunningChange, tourRunning, tourSeconds }: Props) {
-  const { subjects, team, profile, setTab, toast, refreshAll } = useGame();
+  const { subjects, team, profile, settings, setTab, toast, refreshAll } = useGame();
   const [modeId, setModeId] = useState<PomodoroMode>('CLASSIC_25');
   const [subjectId, setSubjectId] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -137,19 +137,27 @@ export function PomodoroScreen({ onRunningChange, tourRunning, tourSeconds }: Pr
       localStorage.removeItem('pokemoro_active_session');
     } catch {}
 
-    const minutes = interrupted
-      ? Math.floor(elapsedSeconds / 60)
-      : mode.minutes > 0 ? mode.minutes : Math.max(1, Math.round(elapsedSeconds / 60));
+    const realMinutes = Math.floor(elapsedSeconds / 60);
+    const isFreeMode = mode.id === 'FREE_STOPWATCH';
+    const isFreeUnder10 = isFreeMode && realMinutes < 10;
+
+    const minutes = isFreeMode
+      ? realMinutes
+      : interrupted ? Math.floor(elapsedSeconds / 60) : mode.minutes;
+
     try {
       const res = await api.endSession({
         sessionId,
+        mode: mode.id,
         actualDurationMinutes: minutes,
         interruptedEarly: interrupted,
         timeSpentOutOfAppSeconds: vis.getOutSeconds(),
       });
-      if (!interrupted) {
+      if (!interrupted && !isFreeUnder10) {
         sfx.bell();
-        confetti({ particleCount: 160, spread: 90, origin: { y: 0.4 } });
+        if (settings?.enableConfetti ?? true) {
+          confetti({ particleCount: 160, spread: 90, origin: { y: 0.4 } });
+        }
       }
       timer.reset();
       setSummary(res);
@@ -164,7 +172,10 @@ export function PomodoroScreen({ onRunningChange, tourRunning, tourSeconds }: Pr
       localStorage.removeItem('pokemoro_active_session');
     } catch {}
     const secs = timer.stop();
-    void submit(mode.minutes === 0 ? false : secs < mode.minutes * 60, secs);
+    const realMinutes = Math.floor(secs / 60);
+    const isFreeUnder10 = mode.id === 'FREE_STOPWATCH' && realMinutes < 10;
+    const interrupted = mode.id === 'FREE_STOPWATCH' ? isFreeUnder10 : secs < mode.minutes * 60;
+    void submit(interrupted, secs);
   };
 
   const closeSummary = async () => {
@@ -190,11 +201,14 @@ export function PomodoroScreen({ onRunningChange, tourRunning, tourSeconds }: Pr
       className="absolute inset-0 z-20 overflow-y-auto bg-gradient-to-b from-[#3b6bff] via-[#2a4fd6] to-night no-scrollbar"
       aria-label="Modo Pomodoro"
     >
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        {BUBBLES.map((b, i) => (
-          <span key={i} className="bubble" style={{ left: `${b.left}%`, width: b.size, height: b.size, animationDuration: `${b.dur}s`, animationDelay: `${b.delay}s` }} />
-        ))}
-      </div>
+      {/* Bolhas flutuantes ambientais (desativáveis em modo econômico) */}
+      {(settings?.enableVisualEffects ?? true) && (
+        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+          {BUBBLES.map((b, i) => (
+            <span key={i} className="bubble" style={{ left: `${b.left}%`, width: b.size, height: b.size, animationDuration: `${b.dur}s`, animationDelay: `${b.delay}s` }} />
+          ))}
+        </div>
+      )}
 
       <div className={`relative flex min-h-full flex-col items-center gap-4 px-5 pt-[104px] ${activeRunning ? 'pb-8' : 'pb-28'}`}>
         {!activeRunning && (
@@ -298,7 +312,9 @@ export function PomodoroScreen({ onRunningChange, tourRunning, tourSeconds }: Pr
               <p className="mt-3 rounded-2xl bg-white p-3 text-center text-xs font-bold text-ink/70">
                 {summary.isCoffeeBreakUnlocked
                   ? <><Cat size={14} className="mr-1 inline" />{summary.spawnsCount} Pokémon vieram descansar com você!</>
-                  : 'Seus minutos foram salvos ❤. Complete o ciclo inteiro para atrair Pokémon no Coffee Break.'}
+                  : mode.id === 'FREE_STOPWATCH'
+                    ? 'Sessão livre salva! Você acumulou Moedas de Foco 🪙. Estude no mínimo 10 minutos no Modo Livre para atrair 1 Pokémon no descanso!'
+                    : 'Seus minutos foram salvos ❤. Complete o ciclo inteiro para atrair Pokémon no Coffee Break.'}
               </p>
               <button id="btn-summary-continue" className="btn mt-4 w-full" onClick={closeSummary}>
                 {summary.isCoffeeBreakUnlocked ? 'Ver o Descanso' : 'Voltar'}

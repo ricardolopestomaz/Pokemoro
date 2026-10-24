@@ -1,10 +1,13 @@
 import { offlineEngine } from '../lib/offline-engine';
+import { syncQueue } from '../lib/sync-queue';
 import type {
   BiscuitType,
   CoffeeBreak,
   EndSessionPayload,
   FeedResponse,
   FocusDex,
+  LeaderboardQueryDTO,
+  LeaderboardResponseDTO,
   PomodoroMode,
   SessionSummary,
   StartSessionResponse,
@@ -34,10 +37,31 @@ export const api = {
     offlineEngine.deleteSubject(id),
   startSession: async (subjectId: string, mode: PomodoroMode, targetDurationMinutes: number): Promise<StartSessionResponse> =>
     offlineEngine.startSession(subjectId, mode, targetDurationMinutes),
-  endSession: async (payload: EndSessionPayload): Promise<SessionSummary> =>
-    offlineEngine.endSession(payload),
+  endSession: async (payload: EndSessionPayload): Promise<SessionSummary> => {
+    const summary = offlineEngine.endSession(payload);
+    // Enfileira sessão no syncQueue para espelhamento assíncrono no Supabase / Leaderboard
+    if (summary.minutesLogged > 0) {
+      syncQueue.enqueue({
+        clientSessionId: payload.sessionId,
+        mode: payload.mode || 'CLASSIC_25',
+        actualDurationMinutes: summary.minutesLogged,
+        startedAt: new Date(Date.now() - summary.minutesLogged * 60000).toISOString(),
+        completedAt: new Date().toISOString(),
+        isDeepFocus: summary.isDeepFocusEarned,
+        streakDays: summary.newStreakDays,
+        appVersion: '1.0.0',
+      });
+    }
+    return summary;
+  },
   recentSessions: async (limit = 10): Promise<unknown[]> =>
     offlineEngine.getRecentSessions(limit),
+
+  // Sincronização & Leaderboard Supabase
+  getLeaderboard: async (query?: Partial<LeaderboardQueryDTO>): Promise<LeaderboardResponseDTO> =>
+    syncQueue.getLeaderboard({ timeframe: query?.timeframe || 'weekly', limit: query?.limit || 50 }),
+  syncPending: async () => syncQueue.flushQueue(),
+  getPendingSyncCount: () => syncQueue.getPending().length,
 
   // Coffee Break
   getActiveBreak: async (): Promise<CoffeeBreak | null> => offlineEngine.getActiveBreak(),

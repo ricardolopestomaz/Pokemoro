@@ -22,11 +22,26 @@ export function PokemonSpawn({ spawn, index, onClick }: Props) {
     onClick(spawn);
   };
 
-  // Evita colisão direta no centro se um spawn antigo tiver coordenadas 0.5, 0.5
-  const isDirectCenter =
-    Math.abs(spawn.canvasPosition.x - 0.5) < 0.05 && Math.abs(spawn.canvasPosition.y - 0.5) < 0.05;
-  const leftPct = isDirectCenter ? 50 : spawn.canvasPosition.x * 100;
-  const topPct = isDirectCenter ? 25 : spawn.canvasPosition.y * 100;
+  // Anti-colisão estrita: se as coordenadas do spawn estiverem dentro da área do tapete central (raio ~0.22 do centro 0.50, 0.54),
+  // reposiciona suavemente para posições seguras no gramado ao redor
+  let posX = spawn.canvasPosition?.x ?? 0.5;
+  let posY = spawn.canvasPosition?.y ?? 0.3;
+  const distToRug = Math.hypot(posX - 0.50, posY - 0.54);
+  if (distToRug < 0.22) {
+    const safeOuterSlots = [
+      { x: 0.50, y: 0.28 },
+      { x: 0.18, y: 0.34 },
+      { x: 0.82, y: 0.34 },
+      { x: 0.16, y: 0.72 },
+      { x: 0.84, y: 0.72 },
+      { x: 0.50, y: 0.76 },
+    ];
+    const safeSlot = safeOuterSlots[index % safeOuterSlots.length];
+    posX = safeSlot.x;
+    posY = safeSlot.y;
+  }
+  const leftPct = posX * 100;
+  const topPct = posY * 100;
 
   return (
     <motion.button
@@ -42,7 +57,7 @@ export function PokemonSpawn({ spawn, index, onClick }: Props) {
     >
       {/* Etiqueta flutuante: apenas nome do Pokémon com o coração e a quantidade de coração */}
       <div className="pointer-events-none absolute left-1/2 -top-5 z-20 flex -translate-x-1/2 flex-col items-center">
-        <div className="flex items-center gap-1.5 rounded-full border border-white/80 bg-white/95 px-2.5 py-0.5 shadow-sm backdrop-blur-xs">
+        <div className="flex items-center gap-1.5 rounded-full border border-white/80 bg-white/95 px-2.5 py-0.5 shadow-sm">
           <span className="text-[10px] font-black text-ocean-dark">
             {spawn.pokemonName}
           </span>

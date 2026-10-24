@@ -2,14 +2,20 @@ type Tone = { freq: number; dur: number; delay?: number; type?: OscillatorType; 
 
 let ctx: AudioContext | null = null;
 let muted = false;
+let hapticsEnabled = true;
 
 export const setMuted = (m: boolean) => { muted = m; };
 export const isMuted = () => muted;
+export const setHapticsEnabled = (h: boolean) => { hapticsEnabled = h; };
+export const isHapticsEnabled = () => hapticsEnabled;
 
 function play(tones: Tone[]) {
   if (muted) return;
   try {
     ctx = ctx ?? new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    if (ctx.state === 'suspended') {
+      void ctx.resume();
+    }
     const now = ctx.currentTime;
     tones.forEach(({ freq, dur, delay = 0, type = 'sine', gain = 0.08 }) => {
       const osc = ctx!.createOscillator();
@@ -22,11 +28,29 @@ function play(tones: Tone[]) {
       osc.connect(g).connect(ctx!.destination);
       osc.start(now + delay);
       osc.stop(now + delay + dur + 0.05);
+
+      // Desconectar o oscilador e o ganho ao terminar para evitar acúmulo de nós no WebAudio nativo
+      osc.onended = () => {
+        try {
+          osc.disconnect();
+          g.disconnect();
+        } catch {}
+      };
     });
   } catch { /* áudio indisponível */ }
 }
 
-const haptic = (ms: number | number[]) => { if ('vibrate' in navigator) navigator.vibrate(ms); };
+let lastHapticTime = 0;
+const haptic = (ms: number | number[]) => { 
+  if (!hapticsEnabled || typeof navigator === 'undefined' || !('vibrate' in navigator)) return;
+  const now = Date.now();
+  // Evita flood de chamadas IPC no VibratorService do Android/MIUI (causa de congelamento na WebView)
+  if (now - lastHapticTime < 75) return;
+  lastHapticTime = now;
+  try {
+    navigator.vibrate(ms); 
+  } catch {}
+};
 
 export const sfx = {
   tap: () => { play([{ freq: 660, dur: 0.08, type: 'triangle' }]); haptic(10); },

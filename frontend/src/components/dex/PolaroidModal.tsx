@@ -18,7 +18,7 @@ interface Props {
 
 /** Card de descoberta estilo Polaroid com inclinação 3D. */
 export function PolaroidModal({ spawn, photoDataUrl, onRegister, onClose }: Props) {
-  const { profile, refreshDex, dex } = useGame();
+  const { profile, refreshDex, dex, settings } = useGame();
   const rx = useMotionValue(0);
   const ry = useMotionValue(0);
   const srx = useSpring(rx, { stiffness: 200, damping: 16 });
@@ -44,7 +44,9 @@ export function PolaroidModal({ spawn, photoDataUrl, onRegister, onClose }: Prop
 
   const register = async () => {
     sfx.fanfare();
-    confetti({ particleCount: 140, spread: 80, origin: { y: 0.6 }, colors: ['#ffcb05', '#48d0b0', '#ff5b84', '#4fc3f7'] });
+    if (settings?.enableConfetti ?? true) {
+      confetti({ particleCount: 140, spread: 80, origin: { y: 0.6 }, colors: ['#ffcb05', '#48d0b0', '#ff5b84', '#4fc3f7'] });
+    }
     if (displayPhoto) {
       await api.saveDexPhoto(spawn.pokemonId, spawn.sleepStyle, displayPhoto, spawn.variant === 'shiny').catch(() => {});
     }

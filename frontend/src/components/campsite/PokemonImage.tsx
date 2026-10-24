@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { menuSprite, sleepSprite } from '../../lib/assets';
 import type { PokemonVariant, SleepStyle } from '../../types';
 
@@ -16,6 +16,11 @@ interface Props {
 /** Imagem de Pokémon com fallback: sleep -> menu -> oculta. */
 export function PokemonImage({ pokemonId, style = 1, variant = 'regular', menu, className, alt = '', silhouette }: Props) {
   const [stage, setStage] = useState(0);
+
+  useEffect(() => {
+    setStage(0);
+  }, [pokemonId, style, variant, menu]);
+
   const sources = menu
     ? [menuSprite(pokemonId, variant), menuSprite(pokemonId, 'regular')]
     : [sleepSprite(pokemonId, style, variant), menuSprite(pokemonId, variant), menuSprite(pokemonId, 'regular')];

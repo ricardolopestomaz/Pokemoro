@@ -1,17 +1,12 @@
-// Service Worker para Pokémoro PWA (habilita instalação como aplicativo nativo no Android)
-const CACHE_NAME = 'pokemoro-v1';
-
-self.addEventListener('install', (event) => {
+// Service Worker desativado para garantir estabilidade no Android/Capacitor nativo
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
-});
-
-self.addEventListener('fetch', (event) => {
-  // Pass-through fetch com fallback
-  event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+  event.waitUntil(
+    self.registration.unregister().then(() => {
+      return caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
+    })
   );
 });

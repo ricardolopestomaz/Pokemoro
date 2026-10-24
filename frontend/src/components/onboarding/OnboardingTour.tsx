@@ -39,11 +39,18 @@ import React, {
 } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronRight, Cookie, Award, Star, Camera, Heart } from 'lucide-react';
-import confetti from 'canvas-confetti';
+import rawConfetti from 'canvas-confetti';
+import { loadSettings } from '../../lib/settings';
 import { api } from '../../api/endpoints';
 import { PokemonImage } from '../campsite/PokemonImage';
 import { sfx } from '../../lib/sfx';
 import type { TabId } from '../../types';
+
+const confetti = (opts?: Parameters<typeof rawConfetti>[0]) => {
+  if (loadSettings().enableConfetti) {
+    rawConfetti(opts);
+  }
+};
 
 // ─────────────────────────────────────────────
 // Tipos Públicos

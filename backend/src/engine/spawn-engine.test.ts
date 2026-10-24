@@ -9,7 +9,7 @@ test('Spawn Engine: Focus Power baixo (<250) deve gerar exatamente 2 Pokémon', 
   });
 
   assert.equal(spawns.length, 2);
-  assert.equal(spawns[0].sleepStyle, 1);
+  assert.ok(spawns[0].sleepStyle >= 1 && spawns[0].sleepStyle <= 3);
   assert.ok(spawns[0].pokemonId > 0);
   assert.ok(spawns[0].spriteSleepUrl.includes('sprites/sleep/'));
 });

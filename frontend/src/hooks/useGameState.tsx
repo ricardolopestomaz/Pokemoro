@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api } from '../api/endpoints';
+import { loadSettings, saveSettings, LOW_POWER_PRESET, DEFAULT_SETTINGS } from '../lib/settings';
 import type {
-  BiscuitInventory, CoffeeBreak, FocusDex, SpawnedPokemon, Subject, TabId, TeamResponse, UserPokemon, UserProfile,
+  AppSettings, BiscuitInventory, CoffeeBreak, FocusDex, SpawnedPokemon, Subject, TabId, TeamResponse, UserPokemon, UserProfile,
 } from '../types';
 
 interface Toast { id: number; text: string; tone: 'ok' | 'error' | 'info' }
@@ -19,6 +20,9 @@ interface GameState {
   setTab: (t: TabId) => void;
   toasts: Toast[];
   toast: (text: string, tone?: Toast['tone']) => void;
+  settings: AppSettings;
+  updateSettings: (patch: Partial<AppSettings>) => void;
+  toggleLowPowerMode: () => void;
   refreshAll: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   refreshBreak: () => Promise<void>;
@@ -45,6 +49,25 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [dex, setDex] = useState<FocusDex | null>(null);
   const [tab, setTab] = useState<TabId>('rest');
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
+
+  const updateSettings = useCallback((patch: Partial<AppSettings>) => {
+    setSettings((prev) => {
+      const next = { ...prev, ...patch };
+      saveSettings(next);
+      return next;
+    });
+  }, []);
+
+  const toggleLowPowerMode = useCallback(() => {
+    setSettings((prev) => {
+      const next = prev.lowPowerMode
+        ? { ...DEFAULT_SETTINGS, lowPowerMode: false }
+        : { ...LOW_POWER_PRESET };
+      saveSettings(next);
+      return next;
+    });
+  }, []);
 
   const toast = useCallback((text: string, tone: Toast['tone'] = 'info') => {
     const id = Date.now() + Math.random();
@@ -94,9 +117,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<GameState>(() => ({
     loading, offline, profile, subjects, coffeeBreak, team, collection, dex, tab, setTab, toasts, toast,
+    settings, updateSettings, toggleLowPowerMode,
     refreshAll, refreshProfile, refreshBreak, refreshTeam, refreshDex, refreshSubjects, patchInventory, patchSpawn, removeSpawn,
     coinsLabel: String(profile?.focusCoins ?? 0),
   }), [loading, offline, profile, subjects, coffeeBreak, team, collection, dex, tab, toasts, toast,
+    settings, updateSettings, toggleLowPowerMode,
     refreshAll, refreshProfile, refreshBreak, refreshTeam, refreshDex, refreshSubjects, patchInventory, patchSpawn, removeSpawn]);
 
 

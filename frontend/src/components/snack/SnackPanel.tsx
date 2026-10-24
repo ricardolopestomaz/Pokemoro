@@ -22,7 +22,7 @@ const BISCUITS: { type: BiscuitType; key: 'basic' | 'great' | 'master'; label: s
 interface Burst { id: number; kind: 'heart' | 'text'; x: number; text?: string; crit?: boolean }
 
 export function SnackPanel({ spawnId, onClose }: Props) {
-  const { coffeeBreak, profile, patchInventory, patchSpawn, removeSpawn, toast, refreshTeam, refreshDex, refreshProfile } = useGame();
+  const { coffeeBreak, profile, settings, patchInventory, patchSpawn, removeSpawn, toast, refreshTeam, refreshDex, refreshProfile } = useGame();
   const spawn: SpawnedPokemon | undefined = coffeeBreak?.spawns.find((s) => s.spawnId === spawnId);
   const [busy, setBusy] = useState<BiscuitType | null>(null);
   const [bursts, setBursts] = useState<Burst[]>([]);
@@ -59,7 +59,9 @@ export function SnackPanel({ spawnId, onClose }: Props) {
       if (res.isRecruited && res.recruitedPokemon) {
         setTimeout(async () => {
           sfx.fanfare();
-          confetti({ particleCount: 200, spread: 100, origin: { y: 0.5 } });
+          if (settings?.enableConfetti ?? true) {
+            confetti({ particleCount: 200, spread: 100, origin: { y: 0.5 } });
+          }
           setRecruited(res.recruitedPokemon);
           await Promise.allSettled([refreshTeam(), refreshDex(), refreshProfile()]);
         }, 700);

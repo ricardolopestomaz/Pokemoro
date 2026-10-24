@@ -43,9 +43,91 @@ export interface StartSessionResponse {
 
 export interface EndSessionPayload {
   sessionId: string;
+  mode?: PomodoroMode;
   actualDurationMinutes: number;
   interruptedEarly: boolean;
   timeSpentOutOfAppSeconds: number;
+}
+
+export interface AppSettings {
+  lowPowerMode: boolean;
+  enableFoilEffect: boolean;
+  enableConfetti: boolean;
+  enableTeamRoaming: boolean;
+  enableVisualEffects: boolean;
+  enableAudio: boolean;
+  enableHaptics: boolean;
+}
+
+// ─────────────────────────────────────────────
+// DTOs para Sincronização Supabase & Ranking Global
+// ─────────────────────────────────────────────
+
+export interface SyncSessionPayload {
+  clientSessionId: string;
+  mode: PomodoroMode;
+  actualDurationMinutes: number;
+  startedAt: string;
+  completedAt: string;
+  isDeepFocus: boolean;
+  streakDays: number;
+  appVersion: string;
+  clientHash?: string;
+}
+
+export interface BatchSyncPayload {
+  userId: string;
+  sessions: SyncSessionPayload[];
+  profileSnapshot: {
+    displayName: string;
+    avatarPokemonId: number;
+    avatarVariant: 'regular' | 'shiny';
+    avatarBg: string;
+    currentStreak: number;
+    equippedTeam?: number[];
+  };
+}
+
+export interface SyncResponseDTO {
+  success: boolean;
+  processedSessionIds: string[];
+  ignoredDuplicateIds: string[];
+  serverTimestamp: string;
+  leaderboardSnapshot?: {
+    rankPosition: number;
+    totalMinutesAllTime: number;
+    weeklyMinutes: number;
+    percentileTop: number;
+  };
+}
+
+export type LeaderboardTimeframe = 'daily' | 'weekly' | 'monthly' | 'all_time';
+
+export interface LeaderboardQueryDTO {
+  timeframe: LeaderboardTimeframe;
+  limit?: number;
+  offset?: number;
+  aroundMe?: boolean;
+}
+
+export interface LeaderboardEntryDTO {
+  rank: number;
+  userId: string;
+  displayName: string;
+  avatarPokemonId: number;
+  avatarVariant: 'regular' | 'shiny';
+  avatarBg: string;
+  minutesStudied: number;
+  streakDays: number;
+  isCurrentUser: boolean;
+  equippedTeam?: number[];
+}
+
+export interface LeaderboardResponseDTO {
+  timeframe: LeaderboardTimeframe;
+  totalParticipants: number;
+  entries: LeaderboardEntryDTO[];
+  userSummary?: LeaderboardEntryDTO;
 }
 
 export interface SessionSummary {

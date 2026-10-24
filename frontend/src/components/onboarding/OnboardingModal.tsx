@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Cookie, Award, ChevronRight } from 'lucide-react';
-import confetti from 'canvas-confetti';
+import rawConfetti from 'canvas-confetti';
+import { loadSettings } from '../../lib/settings';
 import { API_BASE } from '../../api/client';
 import { api } from '../../api/endpoints';
 import { PokemonImage } from '../campsite/PokemonImage';
 import { sfx } from '../../lib/sfx';
+
+const confetti = (opts?: Parameters<typeof rawConfetti>[0]) => {
+  if (loadSettings().enableConfetti) {
+    rawConfetti(opts);
+  }
+};
 
 interface Props {
   /** Chamado quando o onboarding é concluído para atualizar o estado global. */

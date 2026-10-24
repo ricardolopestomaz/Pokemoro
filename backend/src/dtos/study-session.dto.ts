@@ -15,9 +15,47 @@ export interface StartStudySessionResponse {
 
 export interface EndStudySessionRequest {
   sessionId: string;
+  mode?: PomodoroMode;
   actualDurationMinutes: number;
   interruptedEarly: boolean;           // True se cancelou antes do tempo planejado
   timeSpentOutOfAppSeconds: number;    // Medido via AppState/Visibility API
+}
+
+export interface SyncSessionPayload {
+  clientSessionId: string;
+  mode: PomodoroMode;
+  actualDurationMinutes: number;
+  startedAt: string;
+  completedAt: string;
+  isDeepFocus: boolean;
+  streakDays: number;
+  appVersion: string;
+  clientHash?: string;
+}
+
+export interface BatchSyncPayload {
+  userId: string;
+  sessions: SyncSessionPayload[];
+  profileSnapshot: {
+    displayName: string;
+    avatarPokemonId: number;
+    avatarVariant: 'regular' | 'shiny';
+    avatarBg: string;
+    currentStreak: number;
+  };
+}
+
+export interface SyncResponseDTO {
+  success: boolean;
+  processedSessionIds: string[];
+  ignoredDuplicateIds: string[];
+  serverTimestamp: string;
+  leaderboardSnapshot?: {
+    rankPosition: number;
+    totalMinutesAllTime: number;
+    weeklyMinutes: number;
+    percentileTop: number;
+  };
 }
 
 export interface StudySessionSummaryDTO {

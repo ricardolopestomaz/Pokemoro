@@ -15,7 +15,7 @@ const ITEMS: { id: TabId; label: string; Icon: typeof Timer; color: string }[] =
 export function BottomNav() {
   const { tab, setTab } = useGame();
   return (
-    <nav className="absolute inset-x-2.5 bottom-2.5 z-40" aria-label="Navegação principal">
+    <nav className="absolute inset-x-2.5 z-40" style={{ bottom: 'max(10px, env(safe-area-inset-bottom, 10px))' }} aria-label="Navegação principal">
       <div className="glass flex items-center justify-between gap-1 rounded-full px-2 py-1.5">
         {ITEMS.map(({ id, label, Icon, color }) => {
           const active = tab === id;

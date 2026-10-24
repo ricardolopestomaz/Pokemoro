@@ -28,11 +28,12 @@ const KEY_ACTIVE_BREAK = 'pokemoro_active_break';
 const KEY_SESSIONS = 'pokemoro_sessions';
 
 const CANVAS_SLOTS = [
-  { x: 0.26, y: 0.36 }, // Noroeste (topo esquerda)
-  { x: 0.74, y: 0.36 }, // Nordeste (topo direita)
-  { x: 0.22, y: 0.68 }, // Sudoeste (base esquerda)
-  { x: 0.78, y: 0.68 }, // Sudeste (base direita)
-  { x: 0.50, y: 0.25 }, // Norte Central (topo centro)
+  { x: 0.50, y: 0.28 }, // Gramado Norte (acima do tapete)
+  { x: 0.18, y: 0.34 }, // Gramado Noroeste
+  { x: 0.82, y: 0.34 }, // Gramado Nordeste
+  { x: 0.16, y: 0.72 }, // Gramado Sudoeste
+  { x: 0.84, y: 0.72 }, // Gramado Sudeste
+  { x: 0.50, y: 0.76 }, // Gramado Sul (abaixo do tapete)
 ];
 
 function loadJson<T>(key: string, fallback: T): T {
@@ -194,9 +195,12 @@ export class OfflineGameEngine {
     return { success: true, deletedId: id };
   }
 
+  private activeSession: { sessionId: string; mode: PomodoroMode; targetDurationMinutes: number } | null = null;
+
   // 3. Sessões de Estudo & Foco
-  public startSession(_subjectId: string, _mode: PomodoroMode, targetDurationMinutes: number): StartSessionResponse {
+  public startSession(_subjectId: string, mode: PomodoroMode, targetDurationMinutes: number): StartSessionResponse {
     const sessionId = `sess_${Date.now()}`;
+    this.activeSession = { sessionId, mode, targetDurationMinutes };
     return {
       sessionId,
       startedAt: new Date().toISOString(),
@@ -290,15 +294,34 @@ export class OfflineGameEngine {
     saveJson(KEY_SESSIONS, recent.slice(0, 50));
 
     // Determina se desbloqueia Coffee Break
-    const isCoffeeBreakUnlocked = !interrupted;
+    const sessionMode = payload.mode || (this.activeSession?.sessionId === payload.sessionId ? this.activeSession.mode : undefined);
+    const isFreeMode = sessionMode === 'FREE_STOPWATCH';
+
+    let isCoffeeBreakUnlocked = false;
     let spawnsCount = 0;
 
-    if (isCoffeeBreakUnlocked) {
-      if (focusPowerEarned > 600) spawnsCount = 5;
-      else if (focusPowerEarned > 250) spawnsCount = Math.floor(Math.random() * 2) + 3; // 3 ou 4
-      else spawnsCount = 2;
+    if (isFreeMode) {
+      // Regra Estrita do Modo Livre:
+      // Exige rigorosamente >= 10 minutos de estudo real.
+      // Se < 10 minutos: não há Coffee Break e 0 Pokémon.
+      // Se >= 10 minutos: desbloqueia Coffee Break garantindo exatamente +1 Pokémon.
+      if (!interrupted && payload.actualDurationMinutes >= 10) {
+        isCoffeeBreakUnlocked = true;
+        spawnsCount = 1;
+        this.generateCoffeeBreak(payload.sessionId, focusPowerEarned, 1);
+      } else {
+        isCoffeeBreakUnlocked = false;
+        spawnsCount = 0;
+      }
+    } else {
+      isCoffeeBreakUnlocked = !interrupted;
+      if (isCoffeeBreakUnlocked) {
+        if (focusPowerEarned > 600) spawnsCount = 5;
+        else if (focusPowerEarned > 250) spawnsCount = Math.floor(Math.random() * 2) + 3; // 3 ou 4
+        else spawnsCount = 2;
 
-      this.generateCoffeeBreak(payload.sessionId, focusPowerEarned, spawnsCount);
+        this.generateCoffeeBreak(payload.sessionId, focusPowerEarned, spawnsCount);
+      }
     }
 
     return {
@@ -342,14 +365,28 @@ export class OfflineGameEngine {
       const discovered = dexRecords[chosen.id]?.styles || [];
       const undiscovered = [1, 2, 3].filter((s) => !discovered.includes(s)) as SleepStyle[];
 
+      // Sorteio real de poses (1, 2 e 3):
+      // Prioriza poses ainda não catalogadas na Focus Dex se for amigo / parceiro
       let style: SleepStyle = 1;
       if (isFriend && undiscovered.length > 0) {
-        if (focusPower > 600 && undiscovered.includes(3)) style = 3;
-        else if (focusPower > 250 && undiscovered.includes(2)) style = 2;
+        if (focusPower >= 500 && undiscovered.includes(3)) style = 3;
+        else if (focusPower >= 200 && undiscovered.includes(2)) style = 2;
         else style = undiscovered[Math.floor(Math.random() * undiscovered.length)];
       } else {
-        if (focusPower > 600 && Math.random() < 0.25) style = 3;
-        else if (focusPower > 250 && Math.random() < 0.40) style = 2;
+        const roll = Math.random();
+        if (focusPower >= 500) {
+          if (roll < 0.35) style = 3;
+          else if (roll < 0.75) style = 2;
+          else style = 1;
+        } else if (focusPower >= 200) {
+          if (roll < 0.20) style = 3;
+          else if (roll < 0.65) style = 2;
+          else style = 1;
+        } else {
+          if (roll < 0.10) style = 3;
+          else if (roll < 0.45) style = 2;
+          else style = 1;
+        }
       }
 
       const isShiny = Math.random() < Math.min(0.01, 0.0022 + profile.streakDays * 0.001);

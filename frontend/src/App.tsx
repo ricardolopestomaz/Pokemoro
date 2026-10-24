@@ -124,6 +124,18 @@ function Shell() {
           <Toasts />
         </>
       )}
+
+      {/* Bloqueador de Orientação Paisagem (App só em pé) */}
+      <div
+        id="orientation-landscape-blocker"
+        className="hidden fixed inset-0 z-[999] flex-col items-center justify-center bg-slate-900 text-white p-6 text-center"
+      >
+        <div className="text-5xl animate-bounce mb-4">📱</div>
+        <h2 className="text-xl font-black mb-2">Por favor, gire seu celular</h2>
+        <p className="text-xs text-slate-300 font-bold max-w-xs">
+          O Pokémoro foi desenhado exclusivamente para ser jogado em pé (Modo Retrato) para acompanhar sua rotina de estudos.
+        </p>
+      </div>
     </MobileFrame>
   );
 }

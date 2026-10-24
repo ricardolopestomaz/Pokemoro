@@ -20,10 +20,14 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
+      // Em aplicativos híbridos (Capacitor), o Service Worker causa conflito com o Bridge nativo.
+      // Desregistra ativamente para manter a performance fluida a 60 FPS.
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(() => {});
-        });
+        navigator.serviceWorker.getRegistrations().then((regs) => {
+          for (const reg of regs) {
+            reg.unregister();
+          }
+        }).catch(() => {});
       }
     </script>
   </body>

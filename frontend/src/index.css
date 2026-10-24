@@ -70,9 +70,13 @@ body {
 
 /* ---------- Superfícies ---------- */
 .glass {
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 6px 18px rgba(30, 60, 90, 0.18);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 4px 14px rgba(30, 60, 90, 0.12);
+}
+@media (min-width: 768px) {
+  .glass {
+    backdrop-filter: blur(8px);
+  }
 }
 .pill-label {
   background: #fff;
@@ -138,48 +142,66 @@ body {
 .no-scrollbar { scrollbar-width: none; }
 .sprite { image-rendering: auto; pointer-events: none; -webkit-user-drag: none; }
 
-/* ---------- Efeito Laminado / Foil Holográfico Estilo Balatro ---------- */
-@keyframes balatro-foil-sweep {
-  0% {
-    background-position: 0% 0%;
+/* ---------- Efeito Laminado / Foil Holográfico Estilo Balatro Otimizado ---------- */
+@keyframes balatro-foil-shimmer {
+  0%, 100% {
+    opacity: 0.30;
   }
-  100% {
-    background-position: 100% 100%;
+  50% {
+    opacity: 0.58;
   }
 }
 
 .balatro-foil-sprite {
   position: relative;
   display: inline-block;
-  transform: translate3d(0, 0, 0);
+  transform: translateZ(0);
   opacity: 1;
-  filter: drop-shadow(0 8px 16px rgba(72, 208, 176, 0.3)) drop-shadow(0 0 10px rgba(255, 203, 5, 0.25));
 }
 
 .balatro-foil-overlay {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  transform: translate3d(0, 0, 0);
-  opacity: 0.55;
-  will-change: background-position;
+  opacity: 0.40;
   background: linear-gradient(
     125deg,
-    rgba(79, 195, 247, 0.45) 0%,
-    rgba(255, 112, 166, 0.5) 20%,
-    rgba(255, 235, 120, 0.55) 40%,
-    rgba(255, 255, 255, 0.7) 50%,
-    rgba(167, 139, 250, 0.5) 70%,
-    rgba(79, 195, 247, 0.45) 85%,
-    rgba(255, 112, 166, 0.5) 100%
+    rgba(79, 195, 247, 0.5) 0%,
+    rgba(255, 112, 166, 0.55) 20%,
+    rgba(255, 235, 120, 0.6) 40%,
+    rgba(255, 255, 255, 0.8) 50%,
+    rgba(167, 139, 250, 0.55) 70%,
+    rgba(79, 195, 247, 0.5) 85%,
+    rgba(255, 112, 166, 0.55) 100%
   );
-  background-size: 220% 220%;
-  animation: balatro-foil-sweep 4.5s ease-in-out infinite alternate;
-  mix-blend-mode: overlay;
+  animation: balatro-foil-shimmer 3.8s ease-in-out infinite alternate;
   -webkit-mask-size: contain;
   mask-size: contain;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   -webkit-mask-position: center;
   mask-position: center;
+}
+
+/* ---------- Safe Area Insets & Imersão Nativa (Notch / Cutout) ---------- */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+.safe-top-padding {
+  padding-top: max(12px, env(safe-area-inset-top, 12px));
+}
+
+.safe-bottom-padding {
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
+}
+
+/* ---------- Bloqueio de Orientação Paisagem (App Só em Pé) ---------- */
+@media screen and (orientation: landscape) and (max-height: 580px) {
+  #orientation-landscape-blocker {
+    display: flex !important;
+  }
 }

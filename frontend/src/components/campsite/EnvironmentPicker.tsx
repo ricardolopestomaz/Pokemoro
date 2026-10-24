@@ -23,11 +23,11 @@ export function EnvironmentPicker() {
   };
 
   return (
-    <div className="absolute right-3 top-[92px] z-30 flex flex-col items-end gap-2">
+    <div className="absolute right-2.5 sm:right-3.5 top-[80px] sm:top-[88px] z-30 flex flex-col items-end gap-2">
       <button
         id="btn-environment"
         onClick={() => { sfx.tap(); setOpen((o) => !o); }}
-        className="glass flex h-11 w-11 items-center justify-center rounded-full transition-transform active:scale-90"
+        className="glass flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full shadow-sm transition-transform active:scale-90"
         aria-label="Trocar cenário"
       >
         <MapPin size={20} className="text-leaf-dark" />

@@ -11,13 +11,14 @@ export interface SpawnEngineOptions {
   forcedSpawnCount?: number;                    // Quantidade forçada de Pokémon gerados (ex: modo Livre = 1)
 }
 
-// Coordenadas relativas pré-configuradas em torno do tapete no cenário top-down
+// Coordenadas relativas pré-configuradas no gramado aberto em torno do tapete (sistema anti-colisão com a equipe ativa)
 const CANVAS_SLOTS = [
-  { x: 0.50, y: 0.50 }, // Centro do tapete (pose principal)
-  { x: 0.28, y: 0.38 }, // Noroeste
-  { x: 0.72, y: 0.38 }, // Nordeste
-  { x: 0.25, y: 0.65 }, // Sudoeste
-  { x: 0.74, y: 0.65 }, // Sudeste
+  { x: 0.50, y: 0.28 }, // Gramado Norte (acima do tapete)
+  { x: 0.18, y: 0.34 }, // Gramado Noroeste
+  { x: 0.82, y: 0.34 }, // Gramado Nordeste
+  { x: 0.16, y: 0.72 }, // Gramado Sudoeste
+  { x: 0.84, y: 0.72 }, // Gramado Sudeste
+  { x: 0.50, y: 0.76 }, // Gramado Sul (abaixo do tapete)
 ];
 
 import { DEFAULT_AVAILABLE_ROSTER } from '../data/pokemon-catalog.js';
@@ -89,23 +90,32 @@ export function calculateSpawns(options: SpawnEngineOptions): SpawnedPokemonDTO[
     const discovered = discoveredMap[chosen.id] || [];
     const undiscovered = [1, 2, 3].filter((s) => !discovered.includes(s)) as SleepStyle[];
 
-    // Sorteia o estilo de sono
+    // Sorteio real de poses (1, 2 e 3):
+    // Prioriza poses ainda não catalogadas na Focus Dex se for amigo / parceiro
     let style: SleepStyle = 1;
     if (isFriend && undiscovered.length > 0) {
-      // Se já virou amigo, APENAS sorteia poses que o usuário ainda NÃO descobriu
-      if (focusPower > 600 && undiscovered.includes(3)) {
+      if (focusPower >= 500 && undiscovered.includes(3)) {
         style = 3;
-      } else if (focusPower > 250 && undiscovered.includes(2)) {
+      } else if (focusPower >= 200 && undiscovered.includes(2)) {
         style = 2;
       } else {
         const idx = Math.floor(randomFn() * undiscovered.length);
         style = undiscovered[idx];
       }
     } else {
-      if (focusPower > 600 && randomFn() < 0.25) {
-        style = 3;
-      } else if (focusPower > 250 && randomFn() < 0.40) {
-        style = 2;
+      const roll = randomFn();
+      if (focusPower >= 500) {
+        if (roll < 0.35) style = 3;
+        else if (roll < 0.75) style = 2;
+        else style = 1;
+      } else if (focusPower >= 200) {
+        if (roll < 0.20) style = 3;
+        else if (roll < 0.65) style = 2;
+        else style = 1;
+      } else {
+        if (roll < 0.10) style = 3;
+        else if (roll < 0.45) style = 2;
+        else style = 1;
       }
     }
 
