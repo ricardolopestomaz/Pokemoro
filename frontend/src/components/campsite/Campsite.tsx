@@ -13,6 +13,14 @@ import { sfx } from '../../lib/sfx';
 import { recordHeartReaction } from '../../lib/pokemonEmotions';
 import { loadDailyQuests } from '../../lib/quests';
 import { ResearchQuestIcon } from '../common/PokemonThemedIcons';
+import { useMagikarpEvent } from '../../hooks/useMagikarpEvent';
+import { MagikarpRainOverlay } from '../event/MagikarpRainOverlay';
+import { MagikarpWaterPuddles } from '../event/MagikarpWaterPuddles';
+import { MagikarpCommunityBar } from '../event/MagikarpCommunityBar';
+import { MagikarpEventModal } from '../event/MagikarpEventModal';
+import { MagikarpJumpModal } from '../event/MagikarpJumpModal';
+import { MagikarpClimaxModal } from '../event/MagikarpClimaxModal';
+import { MagikarpDevSwitcher } from '../event/MagikarpDevSwitcher';
 import type { SpawnedPokemon, UserPokemon } from '../../types';
 
 interface Props {
@@ -110,7 +118,10 @@ export function Campsite({ onOpenSpawn, isTour = false }: Props) {
   const heartTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const campsiteRef = useRef<HTMLDivElement | null>(null);
   const isDraggingQuests = useRef(false);
+  const isDraggingMagikarp = useRef(false);
   const timeOfDay = useMemo(() => getTimeOfDay(), []);
+
+  const magikarp = useMagikarpEvent(profile?.id || 'local_trainer');
 
   const hasUnclaimedQuests = useMemo(() => {
     try {
@@ -227,6 +238,26 @@ export function Campsite({ onOpenSpawn, isTour = false }: Props) {
           <div className="pointer-events-none absolute inset-0 z-15 bg-slate-950/40 mix-blend-multiply" aria-hidden="true" />
           <NightFireflies />
         </>
+      )}
+
+      {/* Overlays do Festival do Magikarp */}
+      {magikarp.eventState.isRainVisualActive && <MagikarpRainOverlay />}
+      {magikarp.eventState.isTeaserVisualActive && (
+        <MagikarpWaterPuddles
+          secondsUntilEvent={magikarp.eventState.secondsUntilNextPhase}
+          onOpenEventHub={() => magikarp.setShowEventHubModal(true)}
+        />
+      )}
+
+      {/* Barra Mundial Coletiva do Dia do Magikarp */}
+      {!isTour && magikarp.eventState.currentPhase !== 'inactive' && (
+        <div className="absolute top-1.5 inset-x-0 z-35 pointer-events-auto">
+          <MagikarpCommunityBar
+            goal={magikarp.eventState.communityGoal}
+            phase={magikarp.eventState.currentPhase}
+            onOpenEventHub={() => magikarp.setShowEventHubModal(true)}
+          />
+        </div>
       )}
 
       {/* 1. Camada dos Pokémon no cenário */}
@@ -379,6 +410,44 @@ export function Campsite({ onOpenSpawn, isTour = false }: Props) {
               )}
             </button>
           </motion.div>
+
+          {/* 4. Festival do Magikarp (Arrastável) */}
+          {magikarp.eventState.currentPhase !== 'inactive' && (
+            <motion.div
+              drag
+              dragConstraints={campsiteRef}
+              dragMomentum={false}
+              dragElastic={0.08}
+              whileDrag={{ scale: 1.05, zIndex: 60 }}
+              onDragStart={() => { isDraggingMagikarp.current = true; }}
+              onDragEnd={() => { setTimeout(() => { isDraggingMagikarp.current = false; }, 80); }}
+              className="absolute left-2.5 sm:left-3.5 top-[125px] sm:top-[135px] z-30 pointer-events-auto select-none"
+            >
+              <button
+                id="btn-campsite-magikarp-festival"
+                type="button"
+                onClick={() => {
+                  if (!isDraggingMagikarp.current) {
+                    sfx.tap();
+                    magikarp.setShowEventHubModal(true);
+                  }
+                }}
+                className="glass group flex items-center gap-1.5 rounded-full px-2.5 py-1.5 shadow-md border border-cyan-400/80 active:scale-95 transition-all cursor-grab active:cursor-grabbing backdrop-blur-md bg-gradient-to-r from-blue-950/90 to-slate-900/90 text-white"
+                title="Festival do Magikarp (Arraste para reposicionar)"
+                aria-label="Abrir Festival do Magikarp"
+              >
+                <span className="opacity-40 hover:opacity-100 flex items-center" title="Arraste para mover">
+                  <GripVertical size={12} className="text-cyan-400" />
+                </span>
+                <span className="text-xs animate-bounce">🐟</span>
+                <span className="text-[10px] font-black text-cyan-300">Magikarp</span>
+                <span className="flex h-2 w-2 relative ml-0.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                </span>
+              </button>
+            </motion.div>
+          )}
         </>
       )}
 
@@ -408,6 +477,47 @@ export function Campsite({ onOpenSpawn, isTour = false }: Props) {
 
       {/* Modal de Missões Diárias */}
       <QuestsModal isOpen={showQuests} onClose={() => setShowQuests(false)} />
+
+      {/* Modais do Festival do Magikarp */}
+      <MagikarpEventModal
+        isOpen={magikarp.showEventHubModal}
+        onClose={() => magikarp.setShowEventHubModal(false)}
+        eventState={magikarp.eventState}
+        userProgress={magikarp.userProgress}
+        milestones={magikarp.milestones}
+        onClaimMilestone={magikarp.claimMilestone}
+        onOpenMiniGame={() => {
+          magikarp.setShowEventHubModal(false);
+          magikarp.setShowJumpMiniGame(true);
+        }}
+        onOpenClimaxCutscene={() => {
+          magikarp.setShowEventHubModal(false);
+          magikarp.openClimaxCutscene();
+        }}
+        onOpenDevSwitcher={() => {
+          magikarp.setShowDevSwitcher(true);
+        }}
+      />
+
+      <MagikarpJumpModal
+        isOpen={magikarp.showJumpMiniGame}
+        onClose={() => magikarp.setShowJumpMiniGame(false)}
+        studiedMinutes={magikarp.userProgress.eventMinutesStudied}
+        onSaveScore={magikarp.submitMiniGameScore}
+        highestRecord={magikarp.userProgress.highestMiniGameJumpMeters}
+      />
+
+      <MagikarpClimaxModal
+        isOpen={magikarp.showClimaxModal}
+        onClose={magikarp.dismissClimaxModal}
+      />
+
+      <MagikarpDevSwitcher
+        isOpen={magikarp.showDevSwitcher}
+        onClose={() => magikarp.setShowDevSwitcher(false)}
+        currentConfig={magikarp.overrideConfig}
+        onUpdateConfig={magikarp.updateDevConfig}
+      />
     </section>
   );
 }

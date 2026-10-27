@@ -20,6 +20,8 @@ import { getEvolutionOption, type EvolutionNode } from '../data/evolution-tree';
 import { rollPokemonSpawns } from './spawn-engine';
 import { formatLocalDate, evaluateStreakOnSession, isStreakBroken } from './date-utils';
 import { syncQueue } from './sync-queue';
+import { determineActiveEventState } from './events/magikarpCalendar';
+import { recordEventMinutes } from './events/magikarpStorage';
 
 // Chaves locais do armazenamento
 const KEY_PROFILE = 'pokemoro_profile';
@@ -302,9 +304,24 @@ export class OfflineGameEngine {
       ? Math.round(minutes * 10 * deepFocusMultiplier * teamBonusMultiplier)
       : Math.round(minutes * 5);
 
+    // Bônus e Registro do Festival do Magikarp
+    let magikarpBonusMultiplier = 1.0;
+    try {
+      const eventState = determineActiveEventState();
+      if (qualifiesForRewards && (eventState.currentPhase === 'teaser' || eventState.currentPhase === 'live' || eventState.currentPhase === 'climax')) {
+        recordEventMinutes(profile.id, eventState.cycleYear, minutes);
+        const teamHasMagikarp = this.getTeam().activeTeam.some((p) => p.pokemonId === 129);
+        if (eventState.isDoubleCoinsActive && teamHasMagikarp) {
+          magikarpBonusMultiplier = 2.0;
+        }
+      }
+    } catch {
+      // noop
+    }
+
     // Moedas de Foco: Estritamente 0 se for menos de 25 minutos ou se for interrompido
     const coinsEarned = qualifiesForRewards
-      ? Math.round(minutes * 2 * deepFocusMultiplier)
+      ? Math.round(minutes * 2 * deepFocusMultiplier * magikarpBonusMultiplier)
       : 0;
     profile.focusCoins += coinsEarned;
 

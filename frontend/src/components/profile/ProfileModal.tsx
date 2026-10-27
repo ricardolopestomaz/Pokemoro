@@ -8,6 +8,10 @@ import { PokemonImage } from '../campsite/PokemonImage';
 import { caterpieIcon, envUrl } from '../../lib/assets';
 import { sfx } from '../../lib/sfx';
 import { generateStudyStoryCard, shareOrDownloadStory } from '../../lib/storyCard';
+import { MagikarpDevSwitcher } from '../event/MagikarpDevSwitcher';
+import { getDevOverride, saveDevOverride } from '../../lib/events/magikarpCalendar';
+import { getLocalUserEventProgress } from '../../lib/events/magikarpStorage';
+import type { MagikarpDevOverrideConfig } from '../../types/magikarp-event';
 
 interface Props {
   currentIcon: string;
@@ -29,6 +33,23 @@ export function ProfileModal({ currentIcon, currentBg = 'greengrass', onSelectIc
   const [activeTab, setActiveTab] = useState<'profile' | 'settings'>('profile');
   const [selectedIcon, setSelectedIcon] = useState<string>(currentIcon || 'caterpie');
   const [selectedBg, setSelectedBg] = useState<string>(currentBg || 'greengrass');
+  const [devClicks, setDevClicks] = useState(0);
+  const [showDevModal, setShowDevModal] = useState(false);
+  const [devConfig, setDevConfig] = useState<MagikarpDevOverrideConfig>(() => getDevOverride());
+
+  const eventProgress = profile?.id ? getLocalUserEventProgress(profile.id, new Date().getFullYear()) : null;
+
+  const handleVersionClick = () => {
+    setDevClicks((prev) => {
+      const next = prev + 1;
+      if (next >= 5) {
+        setShowDevModal(true);
+        toast('🛠️ Suíte de Testes do Professor Ricardo ativada!');
+        return 0;
+      }
+      return next;
+    });
+  };
 
   const save = () => {
     sfx.fanfare();
@@ -133,6 +154,12 @@ export function ProfileModal({ currentIcon, currentBg = 'greengrass', onSelectIc
                 </div>
               </div>
               <span className="mt-1.5 text-[11px] font-black text-ink/70">Pré-visualização do Ícone</span>
+              {eventProgress?.unlockedSwimmerTitle && (
+                <span className="mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-sm flex items-center gap-1">
+                  <span>🌊</span>
+                  <span>Nadador de Correnteza</span>
+                </span>
+              )}
             </div>
 
             {/* Seção 1: Seletor de Fundo do Avatar */}
@@ -445,8 +472,12 @@ export function ProfileModal({ currentIcon, currentBg = 'greengrass', onSelectIc
                   className="h-5 w-5 accent-emerald-500 rounded"
                 />
               </div>
-              {/* Versão e status oficial v1.0.0 */}
-              <div className="mt-2 rounded-2xl bg-cream/70 border border-ink/10 p-3 text-center">
+              {/* Versão e status oficial v1.0.0 (5 toques abre a Suíte de Testes) */}
+              <div
+                onClick={handleVersionClick}
+                className="mt-2 rounded-2xl bg-cream/70 border border-ink/10 p-3 text-center cursor-pointer select-none active:scale-95 transition-transform"
+                title="Toque 5 vezes para abrir a Suíte de Testes"
+              >
                 <span className="text-[10px] font-black uppercase tracking-wider text-leaf-dark">
                   Pokémoro v1.0.0 Oficial
                 </span>
@@ -457,8 +488,6 @@ export function ProfileModal({ currentIcon, currentBg = 'greengrass', onSelectIc
             </div>
           </div>
         )}
-
-
 
         {/* Footer buttons */}
         <div className="flex gap-3 border-t border-ink/10 px-6 pt-3">
@@ -478,6 +507,17 @@ export function ProfileModal({ currentIcon, currentBg = 'greengrass', onSelectIc
             </button>
           )}
         </div>
+
+        {/* Modal da Suíte de Testes do Professor Ricardo */}
+        <MagikarpDevSwitcher
+          isOpen={showDevModal}
+          onClose={() => setShowDevModal(false)}
+          currentConfig={devConfig}
+          onUpdateConfig={(cfg) => {
+            saveDevOverride(cfg);
+            setDevConfig(cfg || {});
+          }}
+        />
       </motion.div>
     </motion.div>
   );
