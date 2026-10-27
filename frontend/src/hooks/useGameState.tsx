@@ -32,6 +32,8 @@ interface GameState {
   patchInventory: (inv: BiscuitInventory) => void;
   patchSpawn: (spawnId: string, patch: Partial<SpawnedPokemon>) => void;
   removeSpawn: (spawnId: string) => void;
+  renamePokemon: (id: string | number, nickname: string) => Promise<UserPokemon>;
+  evolvePokemon: (id: string | number) => Promise<{ evolvedPokemon: UserPokemon; evolutionNode: any }>;
   /** Biscoito de café (básico) mostrado no HUD */
   coinsLabel: string;
 }
@@ -47,7 +49,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [team, setTeam] = useState<TeamResponse | null>(null);
   const [collection, setCollection] = useState<UserPokemon[]>([]);
   const [dex, setDex] = useState<FocusDex | null>(null);
-  const [tab, setTab] = useState<TabId>('rest');
+  const [tab, setTab] = useState<TabId>(() => {
+    try {
+      const raw = localStorage.getItem('pokemoro_active_session');
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved && saved.sessionId) {
+          return 'focus';
+        }
+      }
+    } catch {}
+    return 'rest';
+  });
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
 
@@ -99,6 +112,39 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => { void refreshAll(); }, [refreshAll]);
 
+  // Monitoramento dinâmico da Meia-Noite (Zera a ofensiva no Supabase e no app se o usuário não estudou)
+  useEffect(() => {
+    const handleMidnightCheck = async () => {
+      try {
+        const { reset } = api.checkMidnightStreak();
+        if (reset) {
+          await refreshProfile();
+          toast('Sua sequência terminou à meia-noite. Estude hoje para acender seu foguinho! 🔥', 'info');
+        }
+      } catch {}
+    };
+
+    // Checa a cada 30 segundos se virou a meia-noite
+    const interval = setInterval(handleMidnightCheck, 30000);
+
+    // Checa também quando a aba ou app mobile volta ao foco
+    const onVisibilityOrFocus = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        void handleMidnightCheck();
+        void refreshBreak();
+      }
+    };
+
+    window.addEventListener('visibilitychange', onVisibilityOrFocus);
+    window.addEventListener('focus', onVisibilityOrFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('visibilitychange', onVisibilityOrFocus);
+      window.removeEventListener('focus', onVisibilityOrFocus);
+    };
+  }, [refreshProfile, refreshBreak, toast]);
+
   const patchInventory = useCallback((inventory: BiscuitInventory) => {
     setProfile((p) => (p ? { ...p, inventory } : p));
   }, []);
@@ -110,19 +156,39 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const removeSpawn = useCallback((spawnId: string) => {
-    setCoffeeBreak((cb) =>
-      cb ? { ...cb, spawns: cb.spawns.filter((s) => s.spawnId !== spawnId) } : cb,
-    );
+    void api.removeSpawn(spawnId);
+    setCoffeeBreak((cb) => {
+      if (!cb) return null;
+      const remaining = cb.spawns.filter((s) => s.spawnId !== spawnId);
+      if (remaining.length === 0) return null;
+      return { ...cb, spawns: remaining };
+    });
   }, []);
+
+  const renamePokemon = useCallback(async (id: string | number, nickname: string) => {
+    const updated = await api.renamePokemon(id, nickname);
+    await refreshTeam();
+    toast(`Nome atualizado para "${nickname}"!`, 'ok');
+    return updated;
+  }, [refreshTeam, toast]);
+
+  const evolvePokemon = useCallback(async (id: string | number) => {
+    const result = await api.evolvePokemon(id);
+    await Promise.all([refreshTeam(), refreshDex()]);
+    toast(`Parabéns! Evoluiu para ${result.evolutionNode.evolvedName}!`, 'ok');
+    return result;
+  }, [refreshTeam, refreshDex, toast]);
 
   const value = useMemo<GameState>(() => ({
     loading, offline, profile, subjects, coffeeBreak, team, collection, dex, tab, setTab, toasts, toast,
     settings, updateSettings, toggleLowPowerMode,
     refreshAll, refreshProfile, refreshBreak, refreshTeam, refreshDex, refreshSubjects, patchInventory, patchSpawn, removeSpawn,
+    renamePokemon, evolvePokemon,
     coinsLabel: String(profile?.focusCoins ?? 0),
   }), [loading, offline, profile, subjects, coffeeBreak, team, collection, dex, tab, toasts, toast,
     settings, updateSettings, toggleLowPowerMode,
-    refreshAll, refreshProfile, refreshBreak, refreshTeam, refreshDex, refreshSubjects, patchInventory, patchSpawn, removeSpawn]);
+    refreshAll, refreshProfile, refreshBreak, refreshTeam, refreshDex, refreshSubjects, patchInventory, patchSpawn, removeSpawn,
+    renamePokemon, evolvePokemon]);
 
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

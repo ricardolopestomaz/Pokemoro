@@ -140,28 +140,45 @@ body {
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
-.sprite { image-rendering: auto; pointer-events: none; -webkit-user-drag: none; }
+.sprite {
+  image-rendering: auto;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.pokemon-shadow {
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.18));
+  transform: translateZ(0);
+  will-change: transform;
+}
 
 /* ---------- Efeito Laminado / Foil Holográfico Estilo Balatro Otimizado ---------- */
 @keyframes balatro-foil-shimmer {
   0%, 100% {
-    opacity: 0.30;
+    opacity: 0.28;
   }
   50% {
-    opacity: 0.58;
+    opacity: 0.55;
   }
 }
 
 .balatro-foil-sprite {
   position: relative;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transform: translateZ(0);
   opacity: 1;
+  will-change: transform;
 }
 
 .balatro-foil-overlay {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
   opacity: 0.40;
   background: linear-gradient(
@@ -181,6 +198,8 @@ body {
   mask-repeat: no-repeat;
   -webkit-mask-position: center;
   mask-position: center;
+  transform: translateZ(0);
+  will-change: opacity;
 }
 
 /* ---------- Safe Area Insets & Imersão Nativa (Notch / Cutout) ---------- */
@@ -205,3 +224,137 @@ body {
     display: flex !important;
   }
 }
+
+/* ---------- Efeitos de Brilho Especial para Pokémon Shiny & Lendário ---------- */
+@keyframes shiny-glow-purple-anim {
+  0%, 100% {
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.16))
+            drop-shadow(0 0 4px rgba(168, 85, 247, 0.95))
+            drop-shadow(0 0 10px rgba(147, 51, 234, 0.55));
+  }
+  50% {
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.16))
+            drop-shadow(0 0 7px rgba(192, 132, 252, 1))
+            drop-shadow(0 0 14px rgba(168, 85, 247, 0.75));
+  }
+}
+
+@keyframes shiny-glow-gold-anim {
+  0%, 100% {
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.16))
+            drop-shadow(0 0 4px rgba(250, 204, 21, 1))
+            drop-shadow(0 0 10px rgba(234, 179, 8, 0.65));
+  }
+  50% {
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.16))
+            drop-shadow(0 0 8px rgba(253, 224, 71, 1))
+            drop-shadow(0 0 16px rgba(250, 204, 21, 0.8));
+  }
+}
+
+/* Versão mini para ícones e ranking (não corta e não fica quadrado) */
+@keyframes shiny-glow-purple-mini-anim {
+  0%, 100% {
+    filter: drop-shadow(0 0 2px rgba(168, 85, 247, 0.95))
+            drop-shadow(0 0 3.5px rgba(192, 132, 252, 0.6));
+  }
+  50% {
+    filter: drop-shadow(0 0 2.5px rgba(192, 132, 252, 1))
+            drop-shadow(0 0 5px rgba(168, 85, 247, 0.8));
+  }
+}
+
+@keyframes shiny-glow-gold-mini-anim {
+  0%, 100% {
+    filter: drop-shadow(0 0 2px rgba(250, 204, 21, 1))
+            drop-shadow(0 0 3.5px rgba(245, 158, 11, 0.7));
+  }
+  50% {
+    filter: drop-shadow(0 0 2.5px rgba(253, 224, 71, 1))
+            drop-shadow(0 0 5.5px rgba(250, 204, 21, 0.85));
+  }
+}
+
+.shiny-glow-purple {
+  animation: shiny-glow-purple-anim 2.5s ease-in-out infinite !important;
+  will-change: filter;
+}
+
+.shiny-glow-gold {
+  animation: shiny-glow-gold-anim 2.2s ease-in-out infinite !important;
+  will-change: filter;
+}
+
+.shiny-glow-purple-mini {
+  animation: shiny-glow-purple-mini-anim 2.5s ease-in-out infinite !important;
+  will-change: filter;
+}
+
+.shiny-glow-gold-mini {
+  animation: shiny-glow-gold-mini-anim 2.2s ease-in-out infinite !important;
+  will-change: filter;
+}
+
+/* ---------- Botões de Controle do Timer / Modo Livre (sem sombra amarela desconexa) ---------- */
+.btn-timer-pause {
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 0 rgba(255, 255, 255, 0.3), 0 8px 18px rgba(0, 0, 0, 0.15);
+  color: #ffffff;
+  border-radius: 9999px;
+  font-weight: 800;
+  transition: transform 100ms, box-shadow 100ms;
+  cursor: pointer;
+}
+.btn-timer-pause:active {
+  transform: translateY(3px) scale(0.97);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.3), 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.btn-timer-resume {
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 0 #047857, 0 8px 18px rgba(4, 120, 87, 0.35);
+  color: #ffffff;
+  border-radius: 9999px;
+  font-weight: 800;
+  transition: transform 100ms, box-shadow 100ms;
+  cursor: pointer;
+}
+.btn-timer-resume:active {
+  transform: translateY(3px) scale(0.97);
+  box-shadow: 0 1px 0 #047857, 0 2px 6px rgba(4, 120, 87, 0.35);
+}
+
+.btn-timer-finish {
+  background: linear-gradient(180deg, #fb7185 0%, #e11d48 100%);
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 4px 0 #9f1239, 0 8px 18px rgba(159, 18, 57, 0.35);
+  color: #ffffff;
+  border-radius: 9999px;
+  font-weight: 800;
+  transition: transform 100ms, box-shadow 100ms;
+  cursor: pointer;
+}
+.btn-timer-finish:active {
+  transform: translateY(3px) scale(0.97);
+  box-shadow: 0 1px 0 #9f1239, 0 2px 6px rgba(159, 18, 57, 0.35);
+}
+
+.btn-timer-start-free {
+  background: linear-gradient(180deg, #34d399 0%, #059669 100%);
+  border: 2px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 5px 0 #047857, 0 12px 24px rgba(5, 150, 105, 0.35);
+  color: #ffffff;
+  border-radius: 9999px;
+  font-weight: 900;
+  transition: transform 100ms, box-shadow 100ms;
+  cursor: pointer;
+}
+.btn-timer-start-free:active {
+  transform: translateY(4px) scale(0.97);
+  box-shadow: 0 1px 0 #047857, 0 3px 6px rgba(5, 150, 105, 0.35);
+}
+

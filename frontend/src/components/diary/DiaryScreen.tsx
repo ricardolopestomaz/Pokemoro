@@ -1,11 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BarChart3, Clock, Flame, Zap, Plus, Edit2, Trash2, Check, X, BookOpen, AlertCircle, Trophy } from 'lucide-react';
+import { BarChart3, Clock, Flame, Zap, Plus, Edit2, Trash2, Check, X, BookOpen, AlertCircle } from 'lucide-react';
 import { useGame } from '../../hooks/useGameState';
 import { api } from '../../api/endpoints';
 import { sfx } from '../../lib/sfx';
 import { LeaderboardModal } from '../leaderboard/LeaderboardModal';
-import type { Subject } from '../../types';
+import { PokeBadgeIcon } from '../common/PokemonThemedIcons';
+import type { Subject, SessionHistoryItem } from '../../types';
+import { formatLocalDate, splitSessionAcrossDays, getStreakStatus } from '../../lib/date-utils';
 
 const COLOR_PALETTE = [
   '#48D0B0', // Verde Menta (Padrão Sleep)
@@ -19,12 +21,6 @@ const COLOR_PALETTE = [
   '#9C27B0', // Violeta
   '#607D8B', // Ardósia
 ];
-
-interface SessionHistoryItem {
-  id: string;
-  actualDurationMinutes: number;
-  completedAt: string;
-}
 
 export function DiaryScreen() {
   const { subjects, profile, coffeeBreak, refreshSubjects, toast } = useGame();
@@ -60,35 +56,60 @@ export function DiaryScreen() {
 
   const totalHours = (totalMinutes / 60).toFixed(1);
 
-  // Gráfico dos últimos 7 dias
+  // Status visual da Ofensiva no estilo Duolingo
+  const streakStatus = useMemo(() => {
+    return getStreakStatus(profile?.streakDays ?? 0, profile?.lastStudyDate ?? null);
+  }, [profile?.streakDays, profile?.lastStudyDate]);
+
+  // Gráfico dos últimos 7 dias com divisão dinâmica de sessões que cruzam a meia-noite
   const weeklyData = useMemo(() => {
     const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     const now = new Date();
     const result: Array<{ day: string; dateStr: string; minutes: number; isToday: boolean }> = [];
 
+    // Mapeia os últimos 7 dias no calendário local
+    const dayMap = new Map<string, number>();
+    const datesList: Array<{ day: string; dateStr: string; isToday: boolean }> = [];
+
     for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(now.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      const dateStr = formatLocalDate(d);
       const dayName = days[d.getDay()];
-
-      // Soma sessões deste dia
-      const daySessions = sessions.filter((s) => s.completedAt && s.completedAt.startsWith(dateStr));
-      const mins = daySessions.reduce((acc, s) => acc + (s.actualDurationMinutes || 0), 0);
-
-      result.push({
+      dayMap.set(dateStr, 0);
+      datesList.push({
         day: dayName,
         dateStr,
-        minutes: mins,
         isToday: i === 0,
       });
     }
 
+    // Itera pelas sessões e divide dinamicamente os minutos caso tenham atravessado a meia-noite
+    sessions.forEach((s) => {
+      const splits = splitSessionAcrossDays({
+        startedAt: s.startedAt,
+        completedAt: s.completedAt,
+        actualDurationMinutes: s.actualDurationMinutes,
+      });
+
+      splits.forEach((split) => {
+        if (dayMap.has(split.dateStr)) {
+          dayMap.set(split.dateStr, (dayMap.get(split.dateStr) || 0) + split.minutes);
+        }
+      });
+    });
+
+    datesList.forEach((item) => {
+      result.push({
+        day: item.day,
+        dateStr: item.dateStr,
+        minutes: dayMap.get(item.dateStr) || 0,
+        isToday: item.isToday,
+      });
+    });
+
     // Se não houver sessões registradas no histórico recente, exibe proporcional com minutos totais para visualização elegante
     const totalWeekMins = result.reduce((acc, r) => acc + r.minutes, 0);
-    if (totalWeekMins === 0 && totalMinutes > 0) {
-      result[result.length - 1].minutes = totalMinutes;
-    }
+    void totalWeekMins;
 
     return result;
   }, [sessions, totalMinutes]);
@@ -194,7 +215,7 @@ export function DiaryScreen() {
             className="flex items-center gap-1.5 rounded-full border border-[#ffcb05] bg-[#fff9c4] px-2.5 py-1 text-xs font-black text-[#7a5900] shadow-xs transition-transform active:scale-95"
             title="Ver Ranking Global no Supabase"
           >
-            <Trophy size={14} fill="#ffcb05" />
+            <PokeBadgeIcon size={16} />
             <span>Ranking</span>
           </button>
           <div className="flex items-center gap-1.5 rounded-full bg-leaf/15 px-3 py-1 text-xs font-black text-leaf-dark">
@@ -223,11 +244,19 @@ export function DiaryScreen() {
         </div>
 
         <div className="rounded-2xl border border-white/80 bg-white p-3 shadow-sm text-center">
-          <div className="mx-auto flex h-7 w-7 items-center justify-center rounded-full bg-warm-orange/15 text-warm-orange">
+          <div className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full transition-all ${
+            streakStatus.activeToday
+              ? 'bg-warm-orange text-white shadow-sm ring-2 ring-warm-orange/30'
+              : streakStatus.pendingToday
+              ? 'bg-warm-orange/20 text-warm-orange'
+              : 'bg-ink/10 text-ink/40'
+          }`}>
             <Flame size={15} />
           </div>
           <div className="mt-1 text-base font-black text-ink">{profile?.streakDays ?? 0}d</div>
-          <div className="text-[9px] font-bold text-ink/60 uppercase">Ofensiva</div>
+          <div className="text-[9px] font-bold text-ink/60 uppercase">
+            {streakStatus.activeToday ? 'Fogo Ativo' : streakStatus.pendingToday ? 'Pendente Hoje' : 'Ofensiva'}
+          </div>
         </div>
       </div>
 
@@ -472,6 +501,79 @@ export function DiaryScreen() {
           ))}
         </div>
       </div>
+
+      {/* 5. Histórico Recente de Estudos com Divisão Dinâmica por Meia-Noite */}
+      {sessions.length > 0 && (
+        <div className="mt-3.5 rounded-[2rem] border border-white/80 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-1.5">
+              <div className="h-3 w-1 rounded-full bg-ocean" />
+              <h2 className="text-xs font-black uppercase text-ink">Histórico de Sessões</h2>
+            </div>
+            <span className="text-[10px] font-extrabold text-ink/60">
+              {sessions.length} registro(s)
+            </span>
+          </div>
+
+          <div className="flex flex-col divide-y divide-ink/5">
+            {sessions.slice(0, 10).map((s) => {
+              const splits = splitSessionAcrossDays({
+                startedAt: s.startedAt,
+                completedAt: s.completedAt,
+                actualDurationMinutes: s.actualDurationMinutes,
+              });
+              const crossesMidnight = splits.length > 1;
+              const startDate = s.startedAt ? new Date(s.startedAt) : null;
+              const endDate = s.completedAt ? new Date(s.completedAt) : null;
+              const formatTime = (d: Date | null) => (d && !isNaN(d.getTime()) ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--');
+
+              return (
+                <div key={s.id} className="py-2.5 flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-black text-ink flex items-center gap-1.5">
+                      <Clock size={13} className="text-ocean" />
+                      <span>{s.actualDurationMinutes} min</span>
+                      {crossesMidnight && (
+                        <span className="rounded-full bg-ocean/15 px-2 py-0.5 text-[9px] font-black text-ocean-dark">
+                          Atravessou Meia-Noite 🌙
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-[10px] font-extrabold text-ink/60">
+                      {startDate ? `${formatLocalDate(startDate)} ${formatTime(startDate)}` : ''} ➔ {formatTime(endDate)}
+                    </span>
+                  </div>
+
+                  {crossesMidnight ? (
+                    <div className="rounded-xl bg-ocean/5 p-2 border border-ocean/15 text-[10px] font-bold text-ink/80 flex flex-col gap-1">
+                      <div className="text-[9px] font-black uppercase text-ocean-dark flex items-center gap-1">
+                        <span>Minutos divididos dinamicamente por dia:</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {splits.map((sp, idx) => (
+                          <span
+                            key={idx}
+                            className="rounded-lg bg-white px-2 py-0.5 font-black text-ink shadow-2xs border border-ocean/20"
+                          >
+                            📅 {sp.dateStr}: <strong>{sp.minutes} min</strong>
+                          </span>
+                        ))}
+                      </div>
+                      <span className="text-[9px] text-warm-orange font-bold">
+                        🔥 Início do estudo salva a ofensiva de {splits[0]?.dateStr} · O dia seguinte fica pendente
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="text-[10px] font-medium text-ink/50">
+                      Foco registrado em {splits[0]?.dateStr || formatLocalDate(endDate || new Date())}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Modal de Criação ou Edição de Matéria */}
       <AnimatePresence>

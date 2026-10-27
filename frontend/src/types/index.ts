@@ -47,6 +47,17 @@ export interface EndSessionPayload {
   actualDurationMinutes: number;
   interruptedEarly: boolean;
   timeSpentOutOfAppSeconds: number;
+  startedAt?: string;
+  completedAt?: string;
+  subjectId?: string;
+}
+
+export interface SessionHistoryItem {
+  id: string;
+  subjectId?: string;
+  actualDurationMinutes: number;
+  completedAt: string;
+  startedAt?: string;
 }
 
 export interface AppSettings {
@@ -84,7 +95,8 @@ export interface BatchSyncPayload {
     avatarVariant: 'regular' | 'shiny';
     avatarBg: string;
     currentStreak: number;
-    equippedTeam?: number[];
+    badges?: number;
+    equippedTeam?: TeamMemberDTO[];
   };
 }
 
@@ -110,6 +122,8 @@ export interface LeaderboardQueryDTO {
   aroundMe?: boolean;
 }
 
+export type TeamMemberDTO = number | { pokemonId: number; variant?: 'regular' | 'shiny' };
+
 export interface LeaderboardEntryDTO {
   rank: number;
   userId: string;
@@ -120,7 +134,9 @@ export interface LeaderboardEntryDTO {
   minutesStudied: number;
   streakDays: number;
   isCurrentUser: boolean;
-  equippedTeam?: number[];
+  equippedTeam?: TeamMemberDTO[];
+  /** Insígnias de ginásio conquistadas (1 a cada 10 dias de ofensiva). */
+  badges?: number;
 }
 
 export interface LeaderboardResponseDTO {
@@ -160,6 +176,8 @@ export interface SpawnedPokemon {
   spriteMenuUrl: string;
   canvasPosition: { x: number; y: number };
   photoDataUrl?: string | null;
+  spawnedAt?: number;
+  expiresAt?: number;
 }
 
 export interface CoffeeBreak {
@@ -167,6 +185,8 @@ export interface CoffeeBreak {
   focusPower: number;
   environment: string;
   spawns: SpawnedPokemon[];
+  createdAt?: number;
+  expiresAt?: number | string;
 }
 
 export interface UserPokemon {
@@ -213,6 +233,7 @@ export interface DexEntry {
   pokemonName: string;
   isSeen: boolean;
   isRecruited: boolean;
+  hasShiny?: boolean;
   styles: { style1: DexStyle; style2: DexStyle; style3: DexStyle };
 }
 

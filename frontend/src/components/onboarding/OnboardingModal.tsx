@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Cookie, Award, ChevronRight } from 'lucide-react';
+import { Award, ChevronRight } from 'lucide-react';
 import rawConfetti from 'canvas-confetti';
 import { loadSettings } from '../../lib/settings';
 import { API_BASE } from '../../api/client';
 import { api } from '../../api/endpoints';
 import { PokemonImage } from '../campsite/PokemonImage';
+import { PokeBiscuitIcon } from '../common/PokemonThemedIcons';
 import { sfx } from '../../lib/sfx';
 
 const confetti = (opts?: Parameters<typeof rawConfetti>[0]) => {
@@ -192,10 +193,8 @@ export function OnboardingModal({ onCompleted }: Props) {
               <motion.img
                 src={imgSrc}
                 alt="Professor Ricardo"
-                onError={() => {
-                  if (imgSrc.includes('Professor-Ricardo.png')) {
-                    setImgSrc('/assets/Professor%20Ricardo.png');
-                  }
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
                 }}
                 animate={{ y: [0, -6, 0] }}
                 transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
@@ -239,8 +238,8 @@ export function OnboardingModal({ onCompleted }: Props) {
                   <span>Bônus Passivo: Coleta &amp; Café (+20% Moedas)</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-black text-slate-700">
-                  <Cookie size={16} className="text-amber-600" />
-                  <span>Kit Boas-Vindas: +3 Biscoitos de Café Básicos 🍪</span>
+                  <PokeBiscuitIcon size={16} type="basic" />
+                  <span>Kit Boas-Vindas: +3 Biscoitos de Café Básicos</span>
                 </div>
               </div>
 

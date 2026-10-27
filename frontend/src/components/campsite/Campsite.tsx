@@ -1,14 +1,18 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Camera, Sparkles, BookOpen } from 'lucide-react';
+import { Camera, Sparkles, BookOpen, Heart, Scroll, GripVertical } from 'lucide-react';
 import { useGame } from '../../hooks/useGameState';
 import { PokemonSpawn } from './PokemonSpawn';
 import { PokemonImage } from './PokemonImage';
 import { EnvironmentPicker } from './EnvironmentPicker';
+import { LofiFloatingWidget } from './LofiFloatingWidget';
+import { QuestsModal } from '../quests/QuestsModal';
 import { captureScenePhoto } from '../../lib/photoCapture';
-import { menuSprite, sleepSprite } from '../../lib/assets';
+import { sleepSprite } from '../../lib/assets';
 import { sfx } from '../../lib/sfx';
-import { getPokemonReaction, type PokemonEmotion } from '../../lib/pokemonEmotions';
+import { recordHeartReaction } from '../../lib/pokemonEmotions';
+import { loadDailyQuests } from '../../lib/quests';
+import { ResearchQuestIcon } from '../common/PokemonThemedIcons';
 import type { SpawnedPokemon, UserPokemon } from '../../types';
 
 interface Props {
@@ -16,10 +20,71 @@ interface Props {
   isTour?: boolean;
 }
 
-/** Hub principal: cenário com o Pokémon Líder dormindo no centro e os visitantes do Coffee Break. */
+function getTimeOfDay(): 'dawn' | 'day' | 'sunset' | 'night' {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 7) return 'dawn';
+  if (hour >= 7 && hour < 17) return 'day';
+  if (hour >= 17 && hour < 19) return 'sunset';
+  return 'night';
+}
+
+function NightFireflies() {
+  const fireflies = useMemo(() => Array.from({ length: 9 }, (_, i) => ({
+    id: i,
+    left: `${12 + (i * 22) % 76}%`,
+    top: `${18 + (i * 17) % 65}%`,
+    duration: 3 + (i % 3) * 1.3,
+    delay: i * 0.45,
+  })), []);
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden" aria-hidden="true">
+      {fireflies.map((f) => (
+        <motion.div
+          key={f.id}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{
+            opacity: [0, 0.85, 0.15, 0.95, 0],
+            scale: [0.5, 1.25, 0.7, 1.35, 0.5],
+            y: [-4, -28, -12, -40, -4],
+            x: [-4, 7, -5, 9, -4],
+          }}
+          transition={{ duration: f.duration, repeat: Infinity, delay: f.delay, ease: 'easeInOut' }}
+          className="absolute h-1.5 w-1.5 rounded-full bg-amber-300 shadow-[0_0_8px_#fde047]"
+          style={{ left: f.left, top: f.top }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ZzzParticles() {
+  return (
+    <div className="pointer-events-none absolute -top-3 right-1 z-30 select-none" aria-hidden="true">
+      <motion.span
+        initial={{ opacity: 0, scale: 0.5, y: 0, x: 0 }}
+        animate={{ opacity: [0, 0.85, 0], scale: [0.6, 1, 0.8], y: [-2, -18], x: [0, 5] }}
+        transition={{ duration: 2.8, repeat: Infinity, ease: 'easeOut', delay: 0.2 }}
+        className="absolute text-[11px] font-black text-white/90 drop-shadow-md"
+      >
+        z
+      </motion.span>
+      <motion.span
+        initial={{ opacity: 0, scale: 0.5, y: 0, x: 0 }}
+        animate={{ opacity: [0, 0.85, 0], scale: [0.7, 1.1, 0.9], y: [-4, -25], x: [3, 11] }}
+        transition={{ duration: 2.8, repeat: Infinity, ease: 'easeOut', delay: 1.4 }}
+        className="absolute text-[13px] font-black text-sky-200/90 drop-shadow-md"
+      >
+        Z
+      </motion.span>
+    </div>
+  );
+}
+
+/** Hub principal: cenário calmo e acolhedor com Pokémon dormindo pacificamente no tapete e visitantes do Coffee Break. */
 export function Campsite({ onOpenSpawn, isTour = false }: Props) {
-  const { coffeeBreak, team, collection, profile, settings, setTab } = useGame();
-  const spawns = isTour ? [] : (coffeeBreak?.spawns ?? []);
+  const { coffeeBreak, team, collection, profile, settings, setTab, removeSpawn } = useGame();
+  const rawSpawns = isTour ? [] : (coffeeBreak?.spawns ?? []);
   const activeTeam = team?.activeTeam ?? [];
   const leader: UserPokemon = activeTeam[0] || collection?.[0] || {
     id: 'caterpie-starter-01',
@@ -32,100 +97,95 @@ export function Campsite({ onOpenSpawn, isTour = false }: Props) {
     passiveBonusDescription: '+20% de Moedas de Foco e biscoitos adicionais nas pausas',
     recruitedAt: '',
   };
-  const recruited = spawns.filter((s) => s.isAlreadyRecruited).length;
-  const leaderSprite = leader ? sleepSprite(leader.pokemonId, 1, leader.variant) : '';
 
   const fullTeam: UserPokemon[] = (activeTeam.length > 0 ? activeTeam : (leader ? [leader] : [])).slice(0, 5);
+  const activeTeamPokemonIds = new Set(fullTeam.map((m) => m.pokemonId));
+  const spawns = rawSpawns.filter(
+    (s) => !s.isAlreadyRecruited && !activeTeamPokemonIds.has(s.pokemonId)
+  );
+  const recruited = rawSpawns.filter((s) => s.isAlreadyRecruited || activeTeamPokemonIds.has(s.pokemonId)).length;
 
-  const [bubble, setBubble] = useState<{
-    memberId: string;
-    emotion: PokemonEmotion;
-    emoji: string;
-    emoteSprite: string;
-  } | null>(null);
-  const [awakeMembers, setAwakeMembers] = useState<Record<string, boolean>>({});
-  const clickCounts = useRef<Record<string, number>>({});
-  const awakeReactionCount = useRef<Record<string, number>>({});
-  const bubbleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const sleepTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const [heartBubbleMemberId, setHeartBubbleMemberId] = useState<string | null>(null);
+  const [showQuests, setShowQuests] = useState(false);
+  const heartTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const campsiteRef = useRef<HTMLDivElement | null>(null);
+  const isDraggingQuests = useRef(false);
+  const timeOfDay = useMemo(() => getTimeOfDay(), []);
 
-  // Limpar timers ao desmontar componente
+  const hasUnclaimedQuests = useMemo(() => {
+    try {
+      return loadDailyQuests().some((q) => q.completed && !q.claimed);
+    } catch {
+      return false;
+    }
+  }, [showQuests]);
+
+  // Verificação reativa periódica da expiração de 30 minutos dos visitantes
+  useEffect(() => {
+    if (isTour) return;
+
+    const checkExpirations = () => {
+      const now = Date.now();
+      const currentSpawns = coffeeBreak?.spawns ?? [];
+      const expired = currentSpawns.filter((s) => {
+        let exp = s.expiresAt;
+        if (!exp && s.spawnedAt) exp = s.spawnedAt + 30 * 60 * 1000;
+        if (!exp) {
+          const match = s.spawnId?.match(/^sp_(\d+)_/);
+          if (match) exp = Number(match[1]) + 30 * 60 * 1000;
+        }
+        return Boolean(exp && exp <= now);
+      });
+      if (expired.length > 0) {
+        expired.forEach((s) => removeSpawn(s.spawnId));
+      }
+    };
+
+    checkExpirations();
+    const interval = setInterval(checkExpirations, 1000);
+
+    const onWake = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        checkExpirations();
+      }
+    };
+    document.addEventListener('visibilitychange', onWake);
+    window.addEventListener('focus', onWake);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onWake);
+      window.removeEventListener('focus', onWake);
+    };
+  }, [coffeeBreak?.spawns, removeSpawn, isTour]);
+
   useEffect(() => {
     return () => {
-      Object.values(sleepTimers.current).forEach(clearTimeout);
-      if (bubbleTimer.current) clearTimeout(bubbleTimer.current);
+      if (heartTimer.current) clearTimeout(heartTimer.current);
     };
   }, []);
 
   const handleMemberClick = (member: UserPokemon) => {
-    const isAwake = Boolean(awakeMembers[member.id]);
-
-    // Se já está acordado, só reage com emoji MAIS UMA VEZ ("ao acordar ele só faz o emoji mais uma vez")
-    if (isAwake) {
-      const reactionsDone = awakeReactionCount.current[member.id] || 0;
-      if (reactionsDone >= 1) {
-        return; // Não permite spammar mais de uma vez enquanto acordado
-      }
-      awakeReactionCount.current[member.id] = reactionsDone + 1;
+    // Limite estrito de no máximo 2 corações a cada 5 minutos (anti-spam)
+    if (!recordHeartReaction()) {
+      return;
     }
 
-    const currentCount = isAwake ? 1 : (clickCounts.current[member.id] || 0) + 1;
-    if (!isAwake) {
-      clickCounts.current[member.id] = currentCount;
-    }
+    sfx.tap();
+    setHeartBubbleMemberId(member.id);
 
-    const reaction = getPokemonReaction(
-      member.friendshipLevel,
-      profile?.streakDays || 0,
-      currentCount,
-      isAwake
-    );
-
-    // Efeitos sonoros contextualizados
-    if (reaction.emotion === 'angry') {
-      sfx.warn();
-    } else if (reaction.wakesUp) {
-      sfx.bell();
-    } else {
-      sfx.tap();
-    }
-
-    // Ao 4º clique consecutivo: o Pokémon acorda e fica acordado por ~8.5s
-    if (reaction.wakesUp) {
-      setAwakeMembers((prev) => ({ ...prev, [member.id]: true }));
-      awakeReactionCount.current[member.id] = 0; // zera contador para permitir exatamente mais 1 reação acordado
-
-      if (sleepTimers.current[member.id]) {
-        clearTimeout(sleepTimers.current[member.id]);
-      }
-
-      // Fica acordado por um tempo suave e considerável antes de voltar a dormir
-      sleepTimers.current[member.id] = setTimeout(() => {
-        setAwakeMembers((prev) => ({ ...prev, [member.id]: false }));
-        clickCounts.current[member.id] = 0;
-        awakeReactionCount.current[member.id] = 0;
-      }, 8500);
-    }
-
-    setBubble({
-      memberId: member.id,
-      emotion: reaction.emotion,
-      emoji: reaction.emoji,
-      emoteSprite: reaction.emoteSprite,
-    });
-
-    if (bubbleTimer.current) clearTimeout(bubbleTimer.current);
-    bubbleTimer.current = setTimeout(() => {
-      setBubble(null);
-    }, 2200);
+    if (heartTimer.current) clearTimeout(heartTimer.current);
+    heartTimer.current = setTimeout(() => {
+      setHeartBubbleMemberId(null);
+    }, 2000);
   };
 
   const TEAM_LAYOUT = [
-    { left: '50%', top: '55%', width: 'w-28 sm:w-34', zIndex: 12, isLeader: true },
-    { left: '30%', top: '47%', width: 'w-20 sm:w-24', zIndex: 10, isLeader: false },
-    { left: '70%', top: '47%', width: 'w-20 sm:w-24', zIndex: 10, isLeader: false },
-    { left: '26%', top: '63%', width: 'w-20 sm:w-24', zIndex: 11, isLeader: false },
-    { left: '74%', top: '63%', width: 'w-20 sm:w-24', zIndex: 11, isLeader: false },
+    { left: '50%', top: '55%', zIndex: 12, isLeader: true },
+    { left: '20%', top: '44%', zIndex: 10, isLeader: false },
+    { left: '80%', top: '44%', zIndex: 10, isLeader: false },
+    { left: '18%', top: '65%', zIndex: 14, isLeader: false },
+    { left: '82%', top: '65%', zIndex: 14, isLeader: false },
   ];
 
   const handleSpawnClick = async (s: SpawnedPokemon) => {
@@ -154,91 +214,90 @@ export function Campsite({ onOpenSpawn, isTour = false }: Props) {
   };
 
   return (
-    <section className="absolute inset-0 z-10" aria-label="Cenário de descanso">
-      {/* 1. Camada dos Pokémon dormindo no cenário */}
+    <section ref={campsiteRef} className="absolute inset-0 z-10 overflow-hidden" aria-label="Cenário de descanso">
+      {/* 0. Iluminação Dinâmica do Ciclo Dia / Noite */}
+      {timeOfDay === 'dawn' && (
+        <div className="pointer-events-none absolute inset-0 z-15 bg-gradient-to-b from-orange-400/20 via-pink-400/10 to-amber-100/10" aria-hidden="true" />
+      )}
+      {timeOfDay === 'sunset' && (
+        <div className="pointer-events-none absolute inset-0 z-15 bg-gradient-to-b from-amber-600/25 via-purple-700/15 to-indigo-950/20" aria-hidden="true" />
+      )}
+      {timeOfDay === 'night' && (
+        <>
+          <div className="pointer-events-none absolute inset-0 z-15 bg-slate-950/40 mix-blend-multiply" aria-hidden="true" />
+          <NightFireflies />
+        </>
+      )}
+
+      {/* 1. Camada dos Pokémon no cenário */}
       <div className="absolute inset-0">
 
-        {/* Equipe Ativa dormindo no tapete com efeito Balatro Foil individual */}
+        {/* Equipe Ativa dormindo pacificamente no tapete com efeito Balatro Foil */}
         {!isTour && fullTeam.map((member, idx) => {
           const pos = TEAM_LAYOUT[idx] || TEAM_LAYOUT[0];
-          const isAwake = Boolean(awakeMembers[member.id]);
           const memberStyle = (member.discoveredStyles?.[0] || 1) as 1 | 2 | 3;
-          const memberSprite = isAwake
-            ? menuSprite(member.pokemonId, member.variant)
-            : sleepSprite(member.pokemonId, memberStyle, member.variant);
+          const memberSprite = sleepSprite(member.pokemonId, memberStyle, member.variant);
+          const isBubbleActive = heartBubbleMemberId === member.id;
 
           return (
             <div
               key={member.id || `team-${idx}-${member.pokemonId}`}
-              className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-auto cursor-pointer select-none"
-              style={{ left: pos.left, top: pos.top, zIndex: bubble?.memberId === member.id ? 45 : pos.zIndex }}
+              className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-auto cursor-pointer select-none w-[38%] max-w-[150px]"
+              style={{ left: pos.left, top: pos.top, zIndex: isBubbleActive ? 45 : pos.zIndex }}
               onClick={() => handleMemberClick(member)}
             >
-              {/* Balão oficial de emoção pixelado estilo Pokémon Mystery Dungeon com os sprites de emojis.png */}
+              {/* Coração pixelado oficial flutuante sem círculo em volta, milimetricamente ampliado */}
               <AnimatePresence>
-                {bubble?.memberId === member.id && (
+                {isBubbleActive && (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.2, y: 8 }}
-                    animate={
-                      bubble.emotion === 'angry'
-                        ? { opacity: 1, scale: [0.2, 1.4, 1.15, 1.3, 1.2], rotate: [0, -14, 14, -8, 8, 0], y: -10 }
-                        : bubble.emotion === 'awake'
-                        ? { opacity: 1, scale: [0.2, 1.5, 1.15, 1.35, 1.2], y: [0, -18, -12] }
-                        : { opacity: 1, scale: [0.2, 1.35, 1.05, 1.25, 1.15], rotate: [0, -8, 8, 0], y: -10 }
-                    }
-                    exit={{ opacity: 0, scale: 0.4, y: -4 }}
-                    transition={{ duration: 0.42, ease: 'easeOut' }}
-                    className={`absolute bottom-full mb-1 z-50 flex flex-col items-center pointer-events-none pixel-emote-bubble ${
-                      bubble.emotion === 'loving'
-                        ? 'border-rose-400'
-                        : bubble.emotion === 'happy'
-                        ? 'border-amber-400'
-                        : bubble.emotion === 'sad'
-                        ? 'border-sky-400'
-                        : 'border-emerald-400'
-                    }`}
+                    initial={{ opacity: 0, scale: 0.4, y: 0 }}
+                    animate={{ opacity: 1, scale: [0.4, 1.25, 1], y: -18 }}
+                    exit={{ opacity: 0, scale: 0.8, y: -30 }}
+                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                    className="absolute bottom-full mb-1 z-50 flex items-center justify-center pointer-events-none"
                   >
                     <img
-                      src={bubble.emoteSprite}
-                      alt={bubble.emotion}
+                      src="/sprites/emotes/loving.png"
+                      alt="<3"
                       draggable={false}
-                      className="w-11 h-11 select-none drop-shadow-md pixelated"
+                      className="w-7 h-7 select-none pixelated drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
                       style={{ imageRendering: 'pixelated' }}
                     />
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              {/* Partículas suaves de Zzz */}
+              {!settings?.lowPowerMode && <ZzzParticles />}
+
+              {/* Animação suave e calma de respiração dormindo */}
               <motion.div
                 animate={
                   settings?.lowPowerMode
                     ? { scaleY: 1, y: 0 }
-                    : isAwake
-                    ? { scale: [1, 1.05, 1], y: [0, -5, 0] }
                     : { scaleY: [1, 1.035, 1], y: [0, -2.5, 0] }
                 }
                 transition={
                   settings?.lowPowerMode
                     ? undefined
-                    : isAwake
-                    ? { duration: 1.8, repeat: Infinity, ease: 'easeInOut' }
                     : { duration: 3.2 + idx * 0.35, repeat: Infinity, ease: 'easeInOut' }
                 }
-                className="flex flex-col items-center"
+                style={{ willChange: 'transform' }}
+                className="flex flex-col items-center w-full"
               >
-                <div className={`balatro-foil-sprite relative ${pos.width}`} style={{ opacity: 1 }}>
+                <div className="balatro-foil-sprite relative flex items-center justify-center w-full" style={{ opacity: 1 }}>
                   <PokemonImage
-                    key={`${member.pokemonId}-${isAwake ? 'awake' : 'sleep'}`}
+                    key={`${member.pokemonId}-sleep`}
                     pokemonId={member.pokemonId}
                     style={memberStyle}
                     variant={member.variant}
-                    menu={isAwake}
                     alt={member.nickname}
-                    className="w-full drop-shadow-xl"
+                    className="w-full object-contain pokemon-shadow"
                   />
                   {/* Camada Holográfica Balatro Foil com máscara no formato do sprite */}
-                  {settings?.enableFoilEffect && !settings?.lowPowerMode && (
+                  {settings?.enableFoilEffect && !settings?.lowPowerMode && (pos.isLeader || member.variant === 'shiny') && (
                     <div
-                      className="balatro-foil-overlay"
+                      className="balatro-foil-overlay inset-0 w-full h-full"
                       style={{
                         WebkitMaskImage: `url('${memberSprite}')`,
                         maskImage: `url('${memberSprite}')`,
@@ -248,88 +307,82 @@ export function Campsite({ onOpenSpawn, isTour = false }: Props) {
                   )}
                 </div>
 
-                {/* UX/UI Clean: Nomes contextuais elegantes sem poluição visual no cenário */}
-                <AnimatePresence>
-                  {bubble?.memberId === member.id || isAwake ? (
-                    <motion.div
-                      key={`active-${member.id}`}
-                      initial={{ opacity: 0, scale: 0.85, y: -3 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.9, y: 1 }}
-                      transition={{ duration: 0.18 }}
-                      className={`mt-1 flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-black shadow-md border ${
-                        isAwake
-                          ? 'bg-amber-500 text-amber-950 border-amber-300 shadow-amber-500/20 animate-pulse'
-                          : 'bg-slate-900/75 backdrop-blur-md text-white border-white/20 shadow-black/20'
-                      }`}
-                    >
-                      {isAwake ? (
-                        <>
-                          <span className="text-[10px]">👀</span>
-                          <span className="truncate max-w-[85px]">{member.nickname} (Acordou!)</span>
-                        </>
-                      ) : pos.isLeader ? (
-                        <>
-                          <Sparkles size={9} className="text-amber-300 fill-amber-300" />
-                          <span className="truncate max-w-[85px]">{member.nickname} (Líder)</span>
-                          <span className="text-[8px] text-amber-300">★</span>
-                        </>
-                      ) : (
-                        <span className="truncate max-w-[75px]">{member.nickname}</span>
-                      )}
-                    </motion.div>
-                  ) : pos.isLeader ? (
-                    <motion.div
-                      key={`leader-idle-${member.id}`}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="mt-1 flex items-center gap-1 rounded-full bg-slate-900/40 backdrop-blur-xs px-2 py-0.5 text-[9px] font-bold text-white/85 shadow-xs border border-white/15"
-                    >
-                      <Sparkles size={8} className="text-amber-400 fill-amber-400" />
-                      <span className="truncate max-w-[80px]">{member.nickname} (Líder)</span>
-                      <span className="text-[8px] text-amber-400 font-black">★</span>
-                    </motion.div>
-                  ) : null}
-                </AnimatePresence>
+                {/* Tag de Líder discreta e elegante */}
+                {pos.isLeader && (
+                  <motion.div
+                    key={`leader-tag-${member.id}`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="mt-1 flex items-center gap-1 rounded-full bg-slate-900/40 backdrop-blur-xs px-2 py-0.5 text-[9px] font-bold text-white/85 shadow-xs border border-white/15"
+                  >
+                    <Sparkles size={8} className="text-amber-400 fill-amber-400" />
+                    <span className="truncate max-w-[80px]">{member.nickname} (Líder)</span>
+                    <span className="text-[8px] text-amber-400 font-black">★</span>
+                  </motion.div>
+                )}
               </motion.div>
             </div>
           );
         })}
 
-        {/* Spawns descansando do Coffee Break */}
-        {spawns.map((s, i) => (
-          <PokemonSpawn key={s.spawnId} spawn={s} index={i} onClick={handleSpawnClick} />
-        ))}
-
-        {/* Estado inicial / vazio: convite amigável para estudar posicionado perfeitamente abaixo do TopHUD sem sobreposição */}
-        {spawns.length === 0 && !isTour && (
-          <div className="absolute left-1/2 top-[82px] sm:top-[92px] z-25 flex w-[86%] max-w-sm -translate-x-1/2 flex-col items-center pointer-events-none">
-            <motion.div
-              initial={{ y: -10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              className="glass pointer-events-auto relative mb-2.5 rounded-2xl px-4 py-2.5 text-center text-xs font-extrabold text-ink shadow-md backdrop-blur-xs border border-white/80"
-            >
-              <span>Seu cantinho de descanso está pronto! Complete um Pomodoro para atrair novos amigos Pokémon. 🍃</span>
-            </motion.div>
-
-            <button
-              id="btn-go-focus"
-              className="btn btn-green pointer-events-auto flex items-center gap-2 px-5 py-2.5 text-xs shadow-lg active:scale-95"
-              onClick={() => {
-                sfx.tap();
-                setTab('focus');
-              }}
-            >
-              <Sparkles size={15} /> Começar a estudar
-            </button>
-          </div>
-        )}
+        {/* Spawns visitantes do Coffee Break (dormem tranquilamente e expiram após 30 min) */}
+        <AnimatePresence>
+          {spawns.map((s, i) => (
+            <PokemonSpawn key={s.spawnId} spawn={s} index={i} onClick={handleSpawnClick} />
+          ))}
+        </AnimatePresence>
       </div>
 
-      {/* Seletor de cenário */}
-      {!isTour && <EnvironmentPicker />}
+      {/* Menus Modulares Arrastáveis na Tela de Descanso */}
+      {!isTour && (
+        <>
+          {/* 1. Mudar Ilha / Cenário (Arrastável) */}
+          <EnvironmentPicker containerRef={campsiteRef} />
 
-      {/* Barra de Status Inferior */}
+          {/* 2. Poké-Rádio Lo-Fi Beats & Sons Ambientes (Arrastável) */}
+          <LofiFloatingWidget containerRef={campsiteRef} />
+
+          {/* 3. Missões Diárias de Estudo & Ginásios (Arrastável) */}
+          <motion.div
+            drag
+            dragConstraints={campsiteRef}
+            dragMomentum={false}
+            dragElastic={0.08}
+            whileDrag={{ scale: 1.05, zIndex: 60 }}
+            onDragStart={() => { isDraggingQuests.current = true; }}
+            onDragEnd={() => { setTimeout(() => { isDraggingQuests.current = false; }, 80); }}
+            className="absolute left-2.5 sm:left-3.5 top-[80px] sm:top-[88px] z-30 pointer-events-auto select-none"
+          >
+            <button
+              id="btn-campsite-quests"
+              type="button"
+              onClick={() => {
+                if (!isDraggingQuests.current) {
+                  sfx.tap();
+                  setShowQuests(true);
+                }
+              }}
+              className="glass group flex items-center gap-1.5 rounded-full px-2.5 py-1.5 shadow-md border border-white/80 active:scale-95 transition-all cursor-grab active:cursor-grabbing backdrop-blur-md"
+              title="Missões Diárias de Estudo & Ginásios (Arraste para reposicionar)"
+              aria-label="Abrir Missões Diárias"
+            >
+              <span className="opacity-40 hover:opacity-100 flex items-center" title="Arraste para mover">
+                <GripVertical size={12} className="text-slate-600" />
+              </span>
+              <ResearchQuestIcon size={16} />
+              <span className="text-[10px] font-black text-slate-800">Missões</span>
+              {hasUnclaimedQuests && (
+                <span className="flex h-2 w-2 relative ml-0.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                </span>
+              )}
+            </button>
+          </motion.div>
+        </>
+      )}
+
+      {/* Barra de Status Inferior (Fotografia e amigos de hoje) */}
       {!isTour && spawns.length > 0 && (
         <div className="absolute bottom-20 inset-x-3 z-30 flex items-center justify-between pointer-events-none">
           <div className="glass pointer-events-auto flex items-center gap-2.5 rounded-full px-4 py-2 shadow-md">
@@ -352,6 +405,9 @@ export function Campsite({ onOpenSpawn, isTour = false }: Props) {
           </button>
         </div>
       )}
+
+      {/* Modal de Missões Diárias */}
+      <QuestsModal isOpen={showQuests} onClose={() => setShowQuests(false)} />
     </section>
   );
 }

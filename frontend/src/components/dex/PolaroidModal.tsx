@@ -7,6 +7,8 @@ import { api } from '../../api/endpoints';
 import { PokemonImage } from '../campsite/PokemonImage';
 import { STYLE_BLURBS, STYLE_NAMES, envUrl } from '../../lib/assets';
 import { sfx } from '../../lib/sfx';
+import { recordQuestAction } from '../../lib/quests';
+import { isLegendaryPokemon } from '../../lib/pokemonShine';
 import type { SpawnedPokemon } from '../../types';
 
 interface Props {
@@ -18,7 +20,7 @@ interface Props {
 
 /** Card de descoberta estilo Polaroid com inclinação 3D. */
 export function PolaroidModal({ spawn, photoDataUrl, onRegister, onClose }: Props) {
-  const { profile, refreshDex, dex, settings } = useGame();
+  const { profile, refreshDex, refreshProfile, dex, settings, toast } = useGame();
   const rx = useMotionValue(0);
   const ry = useMotionValue(0);
   const srx = useSpring(rx, { stiffness: 200, damping: 16 });
@@ -47,10 +49,13 @@ export function PolaroidModal({ spawn, photoDataUrl, onRegister, onClose }: Prop
     if (settings?.enableConfetti ?? true) {
       confetti({ particleCount: 140, spread: 80, origin: { y: 0.6 }, colors: ['#ffcb05', '#48d0b0', '#ff5b84', '#4fc3f7'] });
     }
-    if (displayPhoto) {
-      await api.saveDexPhoto(spawn.pokemonId, spawn.sleepStyle, displayPhoto, spawn.variant === 'shiny').catch(() => {});
-    }
-    await refreshDex().catch(() => undefined);
+    await api.saveDexPhoto(spawn.pokemonId, spawn.sleepStyle, displayPhoto || '', spawn.variant === 'shiny').catch(() => {});
+    recordQuestAction('photo', 1);
+    await Promise.all([
+      refreshDex?.().catch(() => undefined),
+      refreshProfile?.().catch(() => undefined),
+    ]);
+    toast?.('🎉 Nova pose registrada na Focus Dex! +1 Biscoito de Café e +25 Moedas!', 'ok');
     onRegister();
   };
 
@@ -103,7 +108,13 @@ export function PolaroidModal({ spawn, photoDataUrl, onRegister, onClose }: Prop
           </span>
           <h2 className="text-xl font-black text-ink">{STYLE_NAMES[spawn.sleepStyle]}</h2>
           <p className="text-xs font-bold text-ink/60">
-            {spawn.variant === 'shiny' && '✨ Cor rara! '}
+            {spawn.variant === 'shiny' && (
+              isLegendaryPokemon(spawn.pokemonId) ? (
+                <span className="text-amber-500 font-black">👑✨ Lendário Shiny Raro! </span>
+              ) : (
+                <span className="text-purple-600 font-black">✨ Variação Shiny Rara! </span>
+              )
+            )}
             {STYLE_BLURBS[spawn.sleepStyle]}
           </p>
         </div>

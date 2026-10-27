@@ -24,7 +24,9 @@ export function BottomNav() {
               key={id}
               id={`nav-${id}`}
               onClick={() => { sfx.tap(); setTab(id); }}
-              className="relative flex flex-1 flex-col items-center gap-0.5 rounded-full py-1 transition-transform active:scale-90"
+              aria-current={active ? 'page' : undefined}
+              aria-label={label}
+              className="relative flex min-h-[48px] flex-1 flex-col items-center justify-center gap-0.5 rounded-full py-1 transition-transform active:scale-95"
             >
               {active && (
                 <motion.span

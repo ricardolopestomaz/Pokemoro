@@ -9,8 +9,10 @@ export const ENVIRONMENTS: Record<string, { file: string; label: string; emoji: 
   study_room: { file: 'cenario_sala_estudos.png', label: 'Sala de Estudos', emoji: '📚' },
 };
 
-export const envUrl = (env: EnvironmentId | string) =>
-  `/assets/${(ENVIRONMENTS[env] ?? ENVIRONMENTS.greengrass).file}`;
+export const envUrl = (env: EnvironmentId | string) => {
+  const cleanEnv = typeof env === 'string' ? env.split(':')[0] : env;
+  return `/assets/${(ENVIRONMENTS[cleanEnv] ?? ENVIRONMENTS.greengrass).file}`;
+};
 
 const pad = (id: number) => String(id).padStart(4, '0');
 

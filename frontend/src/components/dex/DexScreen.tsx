@@ -7,6 +7,7 @@ import { PokemonImage } from '../campsite/PokemonImage';
 import { PolaroidModal } from './PolaroidModal';
 import { STYLE_NAMES } from '../../lib/assets';
 import { sfx } from '../../lib/sfx';
+import { getPokemonShineBadge, isLegendaryPokemon } from '../../lib/pokemonShine';
 import type { DexEntry, SleepStyle, SpawnedPokemon } from '../../types';
 
 type Filter = 'all' | 'recruited' | 'poses' | 'shiny';
@@ -21,10 +22,17 @@ const stylesOf = (e: DexEntry) => [e.styles.style1, e.styles.style2, e.styles.st
 const unlockedCount = (e: DexEntry) => stylesOf(e).filter((s) => s.isUnlocked).length;
 
 export function DexScreen() {
-  const { dex } = useGame();
+  const { dex, collection } = useGame();
   const [filter, setFilter] = useState<Filter>('all');
   const [open, setOpen] = useState<DexEntry | null>(null);
   const [polaroidPreview, setPolaroidPreview] = useState<SpawnedPokemon | null>(null);
+
+  // Reconhece se o Pokémon é Shiny considerando DexEntry, Estilos e a Coleção de Recrutados
+  const isEntryShiny = (e: DexEntry): boolean => {
+    if (e.hasShiny) return true;
+    if (stylesOf(e).some((s) => s.discoveredShiny)) return true;
+    return collection?.some((p) => p.pokemonId === e.pokemonId && p.variant === 'shiny') ?? false;
+  };
 
   // Lista de todas as poses individuais descobertas (sprites de sono reais)
   const discoveredPoses = useMemo(() => {
@@ -37,13 +45,14 @@ export function DexScreen() {
       entry: DexEntry;
     }> = [];
     for (const e of dex?.entries ?? []) {
+      const entryIsShiny = isEntryShiny(e);
       for (const s of [e.styles.style1, e.styles.style2, e.styles.style3]) {
         if (s.isUnlocked) {
           list.push({
             pokemonId: e.pokemonId,
             pokemonName: e.pokemonName,
             style: s.style as SleepStyle,
-            isShiny: s.discoveredShiny,
+            isShiny: s.discoveredShiny || entryIsShiny,
             photoDataUrl: s.photoDataUrl || null,
             entry: e,
           });
@@ -51,17 +60,17 @@ export function DexScreen() {
       }
     }
     return list;
-  }, [dex]);
+  }, [dex, collection]);
 
   const entries = useMemo(() => {
     const list = dex?.entries ?? [];
     switch (filter) {
       case 'recruited': return list.filter((e) => e.isRecruited);
       case 'poses': return list.filter((e) => unlockedCount(e) > 0);
-      case 'shiny': return list.filter((e) => stylesOf(e).some((s) => s.discoveredShiny));
+      case 'shiny': return list.filter(isEntryShiny);
       default: return list;
     }
-  }, [dex, filter]);
+  }, [dex, filter, collection]);
 
   const openPolaroid = (e: DexEntry, styleNum: SleepStyle, isShiny: boolean, photoDataUrl?: string | null) => {
     sfx.tap();
@@ -173,11 +182,20 @@ export function DexScreen() {
                     <span className="rounded-full bg-leaf/15 px-2 py-0.5 text-[9px] font-black text-leaf-dark">
                       Estilo {pose.style}
                     </span>
-                    {pose.isShiny && (
-                      <span className="flex items-center gap-0.5 rounded-full bg-warm-orange/15 px-1.5 py-0.5 text-[9px] font-black text-warm-orange">
-                        <Sparkles size={10} /> Shiny
-                      </span>
-                    )}
+                    {pose.isShiny && (() => {
+                      const isLegend = isLegendaryPokemon(pose.pokemonId);
+                      return (
+                        <span
+                          className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-black ${
+                            isLegend
+                              ? 'bg-amber-400/20 text-amber-600 border border-amber-300'
+                              : 'bg-purple-500/20 text-purple-600 border border-purple-300'
+                          }`}
+                        >
+                          <Sparkles size={10} /> {isLegend ? 'Lendário ✨' : 'Shiny'}
+                        </span>
+                      );
+                    })()}
                   </div>
 
                   {/* Fotografia real ou sprite da pose de sono */}
@@ -236,7 +254,8 @@ export function DexScreen() {
           >
             {entries.map((e) => {
               const n = unlockedCount(e);
-              const shiny = stylesOf(e).some((s) => s.discoveredShiny);
+              const shiny = isEntryShiny(e);
+              const isLegend = isLegendaryPokemon(e.pokemonId);
               return (
                 <motion.li key={e.pokemonId} variants={{ hidden: { opacity: 0, y: 12, scale: 0.9 }, show: { opacity: 1, y: 0, scale: 1 } }}>
                   <button
@@ -258,7 +277,18 @@ export function DexScreen() {
                       {e.isRecruited && (
                         <Star size={14} className="absolute -right-1 -top-1" fill="#ffcb05" color="#d9a800" />
                       )}
-                      {shiny && <span className="absolute -left-1 -top-1 text-xs">✨</span>}
+                      {shiny && (
+                        <span
+                          className={`absolute -left-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] shadow-sm font-black ${
+                            isLegend
+                              ? 'bg-gradient-to-tr from-amber-400 to-yellow-300 text-amber-950 border border-amber-200'
+                              : 'bg-gradient-to-tr from-purple-600 to-purple-400 text-white border border-purple-300'
+                          }`}
+                          title={isLegend ? 'Lendário Shiny ✨👑' : 'Shiny ✨'}
+                        >
+                          ✨
+                        </span>
+                      )}
                     </div>
 
                     <div className="h-1.5 w-[80%] overflow-hidden rounded-full bg-ink/10">
@@ -300,9 +330,25 @@ export function DexScreen() {
                 >
                   <div className="mb-3 flex items-center justify-between border-b border-ink/10 pb-3">
                     <div>
-                      <span className="text-[10px] font-black uppercase text-leaf-dark">
-                        #{String(open.pokemonId).padStart(4, '0')}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-black uppercase text-leaf-dark">
+                          #{String(open.pokemonId).padStart(4, '0')}
+                        </span>
+                        {isEntryShiny(open) && (() => {
+                          const badge = getPokemonShineBadge(open.pokemonId, 'shiny');
+                          return (
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[9px] font-black shadow-2xs ${
+                                badge.type === 'gold'
+                                  ? 'bg-amber-400/20 text-amber-600 border border-amber-300'
+                                  : 'bg-purple-500/20 text-purple-600 border border-purple-300'
+                              }`}
+                            >
+                              {badge.label}
+                            </span>
+                          );
+                        })()}
+                      </div>
                       <h2 className="text-xl font-black text-ink">{open.isSeen ? open.pokemonName : '???'}</h2>
                     </div>
                     <button
@@ -317,11 +363,13 @@ export function DexScreen() {
                   <div className="grid grid-cols-3 gap-2.5">
                     {stylesOf(open).map((s) => {
                       const styleNum = s.style as SleepStyle;
+                      const isPoseShiny = s.discoveredShiny || isEntryShiny(open);
+                      const isLegend = isLegendaryPokemon(open.pokemonId);
                       return (
                         <button
                           key={s.style}
                           disabled={!s.isUnlocked}
-                          onClick={() => openPolaroid(open, styleNum, s.discoveredShiny)}
+                          onClick={() => openPolaroid(open, styleNum, isPoseShiny)}
                           className={`relative flex flex-col items-center gap-1 rounded-2xl p-2 transition-all ${
                             s.isUnlocked
                               ? 'border border-leaf/40 bg-[#f0faf7] active:scale-95 hover:border-leaf'
@@ -332,7 +380,7 @@ export function DexScreen() {
                             <PokemonImage
                               pokemonId={open.pokemonId}
                               style={styleNum}
-                              variant={s.discoveredShiny ? 'shiny' : 'regular'}
+                              variant={isPoseShiny ? 'shiny' : 'regular'}
                               silhouette={!s.isUnlocked}
                               className="h-full w-full object-contain"
                             />
@@ -345,8 +393,16 @@ export function DexScreen() {
                               <Camera size={10} /> Ver foto
                             </span>
                           )}
-                          {s.discoveredShiny && (
-                            <span className="text-[9px] font-black text-warm-orange">✨ Shiny</span>
+                          {isPoseShiny && (
+                            <span
+                              className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.2 text-[8px] font-black ${
+                                isLegend
+                                  ? 'bg-amber-400/20 text-amber-600 border border-amber-300'
+                                  : 'bg-purple-500/20 text-purple-600 border border-purple-300'
+                              }`}
+                            >
+                              <Sparkles size={8} /> {isLegend ? 'Lendário ✨' : 'Shiny ✨'}
+                            </span>
                           )}
                         </button>
                       );

@@ -38,12 +38,13 @@ import React, {
   useState,
 } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronRight, Cookie, Award, Star, Camera, Heart } from 'lucide-react';
+import { ChevronRight, Award, Star, Camera, Heart } from 'lucide-react';
 import rawConfetti from 'canvas-confetti';
 import { loadSettings } from '../../lib/settings';
 import { api } from '../../api/endpoints';
 import { PokemonImage } from '../campsite/PokemonImage';
 import { sfx } from '../../lib/sfx';
+import { PokeBiscuitIcon } from '../common/PokemonThemedIcons';
 import type { TabId } from '../../types';
 
 const confetti = (opts?: Parameters<typeof rawConfetti>[0]) => {
@@ -715,10 +716,8 @@ export function OnboardingTour({ onSetTab, onTourTimer, onCompleted }: Onboardin
               key={`prof-${stepIdx}`}
               src={imgSrc}
               alt="Professor Ricardo"
-              onError={() => {
-                if (imgSrc.includes('Professor-Ricardo.png')) {
-                  setImgSrc('/assets/Professor%20Ricardo.png');
-                }
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
               }}
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -763,8 +762,8 @@ export function OnboardingTour({ onSetTab, onTourTimer, onCompleted }: Onboardin
                   <span>+20% Moedas de Foco</span>
                 </div>
                 <div className="flex items-center gap-2 text-[10px] font-black text-slate-700">
-                  <Cookie size={14} className="text-amber-600" />
-                  <span>Kit Inicial: +3 Biscoitos Básicos 🍪</span>
+                  <PokeBiscuitIcon size={14} type="basic" />
+                  <span>Kit Inicial: +3 Biscoitos Básicos</span>
                 </div>
               </div>
 
@@ -864,7 +863,7 @@ export function OnboardingTour({ onSetTab, onTourTimer, onCompleted }: Onboardin
                   onClick={handleFeedSlaking}
                   className="flex items-center gap-2 rounded-2xl bg-gradient-to-b from-amber-500 to-amber-600 px-5 py-2.5 text-sm font-black text-white shadow-[0_4px_0_#b45309] transition-all active:translate-y-1 active:shadow-[0_1px_0_#b45309] cursor-pointer"
                 >
-                  <Cookie size={16} />
+                  <PokeBiscuitIcon size={18} type="basic" />
                   <span>Oferecer Biscoito de Teste 🍪</span>
                 </button>
               </div>

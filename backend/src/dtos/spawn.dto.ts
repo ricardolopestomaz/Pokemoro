@@ -26,6 +26,10 @@ export interface SpawnedPokemonDTO {
     x: number;
     y: number;
   };
+
+  // Timestamps de Expiração (30 minutos por ciclo)
+  spawnedAt?: number;
+  expiresAt?: number;
 }
 
 export interface GetActiveCoffeeBreakResponse {

@@ -1,91 +1,57 @@
-export type PokemonEmotion = 'sad' | 'normal' | 'happy' | 'loving' | 'angry' | 'awake' | 'sleep' | 'music' | 'blush';
+export type PokemonEmotion = 'loving';
 
 export interface PokemonReaction {
-  emotion: PokemonEmotion;
+  emotion: 'loving';
   emoji: string;
   emoteSprite: string;
-  wakesUp?: boolean;
+  wakesUp: false;
+}
+
+// Histórico de reações para taxa anti-spam rigorosa: máximo 2 a cada 5 minutos (300.000 ms)
+const HEART_WINDOW_MS = 5 * 60 * 1000;
+const MAX_HEARTS_PER_WINDOW = 2;
+let reactionTimestamps: number[] = [];
+
+/**
+ * Verifica se uma nova reação de coração pode ser exibida respeitando a cota de 2 a cada 5 minutos.
+ */
+export function canTriggerHeartReaction(now: number = Date.now()): boolean {
+  reactionTimestamps = reactionTimestamps.filter((t) => now - t < HEART_WINDOW_MS);
+  return reactionTimestamps.length < MAX_HEARTS_PER_WINDOW;
 }
 
 /**
- * Retorna o sprite oficial do balão de emoção pixelado (Pokémon Mystery Dungeon)
- * e o emoji correspondente.
- * 
- * Mecânica de interação progressiva anti-spam:
- * - 1º e 2º cliques: Emoções de carinho e amizade (Loving Heart, Happy, Music, Sleep).
- * - 3º clique: Irritação / Raiva (Balão de fúria / rabisco de irritação).
- * - 4º clique: O Pokémon ACORDA assustado/espreguiçando (Balão de exclamação !) e fica acordado por ~8.5s!
- * - Ao acordar: só reage com emoji mais UMA vez enquanto acordado.
+ * Registra o timestamp de uma reação de coração concedida.
  */
-export function getPokemonReaction(
-  friendshipLevel: number = 1,
-  streakDays: number = 0,
-  clickStreak: number = 1,
-  isCurrentlyAwake: boolean = false
-): PokemonReaction {
-  // Se já está acordado, reage com carinho ou cantoria
-  if (isCurrentlyAwake) {
-    const awakeChoices: { emotion: PokemonEmotion; emoteSprite: string; emoji: string }[] = [
-      { emotion: 'blush', emoteSprite: '/sprites/emotes/blush.png', emoji: '🥰' },
-      { emotion: 'happy', emoteSprite: '/sprites/emotes/happy.png', emoji: '😊' },
-      { emotion: 'music', emoteSprite: '/sprites/emotes/music.png', emoji: '🎵' },
-      { emotion: 'loving', emoteSprite: '/sprites/emotes/loving.png', emoji: '<3' },
-    ];
-    const choice = awakeChoices[Math.floor(Math.random() * awakeChoices.length)];
-    return choice;
+export function recordHeartReaction(now: number = Date.now()): boolean {
+  if (!canTriggerHeartReaction(now)) {
+    return false;
   }
-
-  // 4º clique: Acorda com balão de exclamação (!)
-  if (clickStreak >= 4) {
-    return {
-      emotion: 'awake',
-      emoteSprite: '/sprites/emotes/awake.png',
-      emoji: '❗',
-      wakesUp: true,
-    };
-  }
-
-  // 3º clique: Raiva / irritação por ser cutucado
-  if (clickStreak === 3) {
-    return {
-      emotion: 'angry',
-      emoteSprite: '/sprites/emotes/angry.png',
-      emoji: '💢',
-    };
-  }
-
-  // 2º clique: Carinho / Amor (Coração pixelado <3)
-  if (clickStreak === 2) {
-    return {
-      emotion: 'loving',
-      emoteSprite: '/sprites/emotes/loving.png',
-      emoji: '<3',
-    };
-  }
-
-  // 1º clique: Emoção baseada no estado de amizade e ofensiva
-  if (friendshipLevel >= 4 || streakDays >= 3) {
-    const highChoices = [
-      { emotion: 'loving' as PokemonEmotion, emoteSprite: '/sprites/emotes/loving.png', emoji: '<3' },
-      { emotion: 'happy' as PokemonEmotion, emoteSprite: '/sprites/emotes/happy.png', emoji: '😊' },
-      { emotion: 'music' as PokemonEmotion, emoteSprite: '/sprites/emotes/music.png', emoji: '🎵' },
-    ];
-    return highChoices[Math.floor(Math.random() * highChoices.length)];
-  }
-
-  if (streakDays === 0 && friendshipLevel <= 1) {
-    const sadChoices = [
-      { emotion: 'sad' as PokemonEmotion, emoteSprite: '/sprites/emotes/sad.png', emoji: '💧' },
-      { emotion: 'loving' as PokemonEmotion, emoteSprite: '/sprites/emotes/loving.png', emoji: '<3' },
-    ];
-    return sadChoices[Math.floor(Math.random() * sadChoices.length)];
-  }
-
-  const normalChoices = [
-    { emotion: 'sleep' as PokemonEmotion, emoteSprite: '/sprites/emotes/sleep.png', emoji: '💤' },
-    { emotion: 'happy' as PokemonEmotion, emoteSprite: '/sprites/emotes/happy.png', emoji: '😊' },
-    { emotion: 'music' as PokemonEmotion, emoteSprite: '/sprites/emotes/music.png', emoji: '🎵' },
-  ];
-  return normalChoices[Math.floor(Math.random() * normalChoices.length)];
+  reactionTimestamps.push(now);
+  return true;
 }
 
+/**
+ * Zera o histórico de reações (útil para testes unitários).
+ */
+export function resetReactionRateLimiter(): void {
+  reactionTimestamps = [];
+}
+
+/**
+ * Retorna a reação suave, harmônica e exclusiva de coração (<3),
+ * sem irritação, sem acordar por cliques insistentes e sem spam.
+ */
+export function getPokemonReaction(
+  _friendshipLevel: number = 1,
+  _streakDays: number = 0,
+  _clickStreak: number = 1,
+  _isCurrentlyAwake: boolean = false
+): PokemonReaction {
+  return {
+    emotion: 'loving',
+    emoji: '<3',
+    emoteSprite: '/sprites/emotes/loving.png',
+    wakesUp: false,
+  };
+}

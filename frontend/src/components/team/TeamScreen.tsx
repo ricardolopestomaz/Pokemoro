@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ClipboardList, Edit3, Heart, Plus, Sparkles, Star, Users, X, Zap } from 'lucide-react';
+import { Check, ClipboardList, Edit3, Heart, Plus, Sparkles, Star, Users, X, Zap } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { api } from '../../api/endpoints';
 import { useGame } from '../../hooks/useGameState';
 import { PokemonImage } from '../campsite/PokemonImage';
 import { ROLE_INFO, envUrl } from '../../lib/assets';
 import { sfx } from '../../lib/sfx';
+import { getEvolutionOption } from '../../data/evolution-tree';
 import type { StudyRole, UserPokemon } from '../../types';
 
 const MAX_TEAM = 5;
 
 export function TeamScreen() {
-  const { team, collection, refreshTeam, toast } = useGame();
+  const { team, collection, refreshTeam, toast, renamePokemon, evolvePokemon } = useGame();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [teamName, setTeamName] = useState(() => localStorage.getItem('pokemoro_team_name') || 'Dream Team');
   const [editingName, setEditingName] = useState(false);
@@ -20,6 +22,9 @@ export function TeamScreen() {
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [boxFilter, setBoxFilter] = useState<'ALL' | StudyRole>('ALL');
   const [saving, setSaving] = useState(false);
+  const [editingNickname, setEditingNickname] = useState(false);
+  const [nicknameInput, setNicknameInput] = useState('');
+  const [evolving, setEvolving] = useState(false);
 
   // Sincroniza com a equipe salva no backend
   useEffect(() => {
@@ -542,7 +547,54 @@ export function TeamScreen() {
                 />
               </div>
 
-              <h3 className="mt-2 text-xl font-black text-ink">{showcased.nickname}</h3>
+              {/* Nome & Edição de Nickname */}
+              {editingNickname ? (
+                <div className="mt-2 flex items-center justify-center gap-1.5">
+                  <input
+                    type="text"
+                    maxLength={18}
+                    value={nicknameInput}
+                    onChange={(e) => setNicknameInput(e.target.value)}
+                    className="w-36 rounded-xl border-2 border-emerald-400 bg-white px-2 py-1 text-center text-sm font-black text-ink shadow-xs focus:outline-none"
+                    autoFocus
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!nicknameInput.trim()) return;
+                      try {
+                        await renamePokemon(showcased.id, nicknameInput.trim());
+                        setEditingNickname(false);
+                      } catch (e) {
+                        toast((e as Error).message, 'error');
+                      }
+                    }}
+                    className="rounded-xl bg-emerald-500 p-1.5 text-white shadow-xs hover:bg-emerald-600 active:scale-95"
+                  >
+                    <Check size={16} />
+                  </button>
+                  <button
+                    onClick={() => setEditingNickname(false)}
+                    className="rounded-xl bg-slate-200 p-1.5 text-slate-700 shadow-xs hover:bg-slate-300 active:scale-95"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-2 flex items-center justify-center gap-1.5">
+                  <h3 className="text-xl font-black text-ink">{showcased.nickname}</h3>
+                  <button
+                    title="Mudar nome do Pokémon"
+                    onClick={() => {
+                      setNicknameInput(showcased.nickname);
+                      setEditingNickname(true);
+                    }}
+                    className="rounded-lg p-1 text-ink/40 hover:bg-slate-100 hover:text-ink/80 transition-colors"
+                  >
+                    <Edit3 size={15} />
+                  </button>
+                </div>
+              )}
+
               <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-ink/60">
                 <span>{ROLE_INFO[showcased.role]?.emoji} {ROLE_INFO[showcased.role]?.label}</span>
                 <span>·</span>
@@ -561,8 +613,51 @@ export function TeamScreen() {
                 <span>{showcased.friendshipLevel} / 5</span>
               </div>
 
+              {/* Card de Evolução */}
+              {(() => {
+                const evoOption = getEvolutionOption(showcased.pokemonId);
+                if (!evoOption) return null;
+                const canEvolve = showcased.friendshipLevel >= evoOption.requiredFriendshipLevel;
+                return (
+                  <div className="mt-3 rounded-2xl border-2 border-amber-300/80 bg-gradient-to-r from-amber-50 to-orange-50 p-3 text-center shadow-xs">
+                    <div className="text-[10px] font-black uppercase text-amber-800 flex items-center justify-center gap-1">
+                      <Sparkles size={12} className="text-amber-500 fill-amber-500" />
+                      <span>Linha Evolutiva</span>
+                    </div>
+                    <div className="text-xs font-bold text-amber-950 mt-1">
+                      Evolui para: <strong className="text-amber-600">{evoOption.evolvedName}</strong>
+                    </div>
+                    {canEvolve ? (
+                      <button
+                        disabled={evolving}
+                        onClick={async () => {
+                          setEvolving(true);
+                          try {
+                            sfx.bell();
+                            confetti({ particleCount: 160, spread: 80, origin: { y: 0.5 } });
+                            await evolvePokemon(showcased.id);
+                          } catch (e) {
+                            toast((e as Error).message, 'error');
+                          } finally {
+                            setEvolving(false);
+                          }
+                        }}
+                        className="btn mt-2.5 w-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white font-black text-xs py-2 shadow-md hover:brightness-105 active:scale-95 flex items-center justify-center gap-1.5 animate-pulse"
+                      >
+                        <Sparkles size={14} />
+                        <span>{evolving ? 'Evoluindo...' : `Evoluir para ${evoOption.evolvedName}! ✨`}</span>
+                      </button>
+                    ) : (
+                      <div className="mt-2 rounded-xl bg-white/70 px-2 py-1 text-[11px] font-bold text-amber-800">
+                        Requer Amizade Nível {evoOption.requiredFriendshipLevel} para evoluir
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               <button
-                onClick={() => { sfx.tap(); setShowStatsModal(false); }}
+                onClick={() => { sfx.tap(); setEditingNickname(false); setShowStatsModal(false); }}
                 className="btn btn-green mt-4 w-full py-2.5 text-xs"
               >
                 Entendido

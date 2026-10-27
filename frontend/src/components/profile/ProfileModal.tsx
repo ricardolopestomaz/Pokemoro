@@ -1,10 +1,13 @@
 import { useState } from 'react';
+import { api } from '../../api/endpoints';
+import { formatLocalDate, splitSessionAcrossDays } from '../../lib/date-utils';
 import { motion } from 'framer-motion';
-import { Check, X, Zap, Sparkles, Volume2, VolumeX, Smartphone, Eye, Wind } from 'lucide-react';
+import { Check, X, Zap, Sparkles, Volume2, VolumeX, Smartphone, Eye, Wind, Share2 } from 'lucide-react';
 import { useGame } from '../../hooks/useGameState';
 import { PokemonImage } from '../campsite/PokemonImage';
 import { caterpieIcon, envUrl } from '../../lib/assets';
 import { sfx } from '../../lib/sfx';
+import { generateStudyStoryCard, shareOrDownloadStory } from '../../lib/storyCard';
 
 interface Props {
   currentIcon: string;
@@ -22,7 +25,7 @@ const BG_OPTIONS = [
 ];
 
 export function ProfileModal({ currentIcon, currentBg = 'greengrass', onSelectIcon, onClose }: Props) {
-  const { collection, settings, updateSettings, toggleLowPowerMode } = useGame();
+  const { profile, team, subjects, collection, settings, updateSettings, toggleLowPowerMode, toast } = useGame();
   const [activeTab, setActiveTab] = useState<'profile' | 'settings'>('profile');
   const [selectedIcon, setSelectedIcon] = useState<string>(currentIcon || 'caterpie');
   const [selectedBg, setSelectedBg] = useState<string>(currentBg || 'greengrass');
@@ -241,6 +244,52 @@ export function ProfileModal({ currentIcon, currentBg = 'greengrass', onSelectIc
                 </div>
               )}
             </div>
+
+            {/* Seção 3: Compartilhar Conquistas nos Stories */}
+            <div className="mb-4 mt-2">
+              <button
+                onClick={async () => {
+                  try {
+                    sfx.tap();
+                    const partner = team?.activeTeam[0] || collection[0];
+                    const todayStr = formatLocalDate(new Date());
+                    const recent = await api.recentSessions(50).catch(() => []);
+                    let minutesToday = 0;
+                    const perSubject = new Map<string, number>();
+                    (recent as any[]).forEach((s) => {
+                      const splits = splitSessionAcrossDays({
+                        startedAt: s.startedAt,
+                        completedAt: s.completedAt,
+                        actualDurationMinutes: s.actualDurationMinutes,
+                      });
+                      splits.forEach((sp) => {
+                        if (sp.dateStr !== todayStr) return;
+                        minutesToday += sp.minutes;
+                        if (s.subjectId) perSubject.set(s.subjectId, (perSubject.get(s.subjectId) || 0) + sp.minutes);
+                      });
+                    });
+                    const topId = [...perSubject.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+                    const topSubject = subjects.find((s) => s.id === topId);
+                    const dataUrl = await generateStudyStoryCard({
+                      pokemonId: partner?.pokemonId ?? 10,
+                      nickname: partner?.nickname ?? 'Caterpie',
+                      variant: partner?.variant ?? 'regular',
+                      minutesToday,
+                      streakDays: profile?.streakDays ?? 0,
+                      subjectName: topSubject?.name ?? 'Estudos Gerais',
+                    });
+                    await shareOrDownloadStory(dataUrl);
+                    toast('Card de Stories gerado com sucesso!', 'ok');
+                  } catch {
+                    toast('Não foi possível gerar o card de Stories.', 'error');
+                  }
+                }}
+                className="btn w-full bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-600 text-white font-black text-xs py-3 rounded-2xl shadow-md flex items-center justify-center gap-2 active:scale-95"
+              >
+                <Share2 size={16} />
+                <span>Gerar Cartão Postal para Stories 📸</span>
+              </button>
+            </div>
           </div>
         )}
 
@@ -409,29 +458,7 @@ export function ProfileModal({ currentIcon, currentBg = 'greengrass', onSelectIc
           </div>
         )}
 
-        {/* Botão Tutorial */}
-        {activeTab === 'profile' && (
-          <div className="px-6 pb-2 pt-1">
-            <button
-              type="button"
-              onClick={() => {
-                sfx.tap();
-                try {
-                  const raw = localStorage.getItem('pokemoro_profile');
-                  if (raw) {
-                    const parsed = JSON.parse(raw);
-                    parsed.hasCompletedOnboarding = false;
-                    localStorage.setItem('pokemoro_profile', JSON.stringify(parsed));
-                    window.location.reload();
-                  }
-                } catch {}
-              }}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-emerald-400 bg-emerald-50/90 py-2.5 text-xs font-black text-emerald-800 shadow-sm active:scale-95 hover:bg-emerald-100 transition-all"
-            >
-              <span>🎓 Rever Tutorial do Professor Ricardo</span>
-            </button>
-          </div>
-        )}
+
 
         {/* Footer buttons */}
         <div className="flex gap-3 border-t border-ink/10 px-6 pt-3">

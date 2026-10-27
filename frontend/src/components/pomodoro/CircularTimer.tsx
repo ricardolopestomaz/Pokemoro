@@ -1,11 +1,13 @@
 import { motion } from 'framer-motion';
 import { PokemonImage } from '../campsite/PokemonImage';
 import { formatTime } from '../../lib/assets';
+import type { PokemonVariant } from '../../types';
 
 interface Props {
   progress: number;
   seconds: number;
   partnerId: number;
+  partnerVariant?: PokemonVariant;
   distracted: boolean;
   running: boolean;
   caption: string;
@@ -15,10 +17,10 @@ const R = 118;
 const C = 2 * Math.PI * R;
 
 /** Relógio circular SVG com disco de Poké Bola e o parceiro estudando. */
-export function CircularTimer({ progress, seconds, partnerId, distracted, running, caption }: Props) {
+export function CircularTimer({ progress, seconds, partnerId, partnerVariant = 'regular', distracted, running, caption }: Props) {
   return (
     <div className="flex flex-col items-center">
-      <div className="text-6xl font-black tracking-wider text-white drop-shadow-[0_3px_0_rgba(0,0,0,0.25)]" role="timer" aria-live="off" id="timer-display">
+      <div className="text-6xl font-black tracking-wider tabular-nums text-white drop-shadow-[0_3px_0_rgba(0,0,0,0.25)]" style={{ fontVariantNumeric: 'tabular-nums' }} role="timer" aria-live="off" id="timer-display">
         {formatTime(seconds).split(':').map((p, i) => (
           <span key={i}>{i > 0 && <span className="mx-0.5 opacity-70">:</span>}{p}</span>
         ))}
@@ -45,11 +47,13 @@ export function CircularTimer({ progress, seconds, partnerId, distracted, runnin
           className="absolute inset-0 flex items-center justify-center"
           animate={running && !distracted ? { y: [0, -5, 0] } : { y: 0 }}
           transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ willChange: 'transform' }}
         >
           <PokemonImage
             pokemonId={partnerId}
+            variant={partnerVariant}
             alt="Parceiro de estudo"
-            className="w-[62%] drop-shadow-xl"
+            className="w-[62%] pokemon-shadow"
           />
         </motion.div>
         {running && distracted && <div className="absolute right-8 top-8 text-3xl" aria-hidden>💤</div>}

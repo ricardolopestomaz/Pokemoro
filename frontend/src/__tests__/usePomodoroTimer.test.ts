@@ -97,4 +97,59 @@ describe('hooks/usePomodoroTimer', () => {
     expect(result.current.status).toBe('idle');
     expect(result.current.elapsed).toBe(0);
   });
+
+  it('pause e resume devem congelar e retomar a contagem de tempo líquido', () => {
+    const { result } = renderHook(() =>
+      usePomodoroTimer({ targetMinutes: 0 }) // Modo Livre
+    );
+
+    act(() => {
+      result.current.start();
+    });
+
+    expect(result.current.status).toBe('running');
+
+    act(() => {
+      vi.advanceTimersByTime(3000); // 3s rodando
+    });
+
+    expect(result.current.elapsed).toBeGreaterThanOrEqual(3);
+
+    // Pausa
+    act(() => {
+      result.current.pause();
+    });
+
+    expect(result.current.status).toBe('paused');
+    const elapsedAtPause = result.current.elapsed;
+
+    // Passam 5 segundos em pausa
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+
+    // O tempo decorrido deve permanecer RIGOROSAMENTE congelado
+    expect(result.current.elapsed).toBe(elapsedAtPause);
+
+    // Retoma
+    act(() => {
+      result.current.resume();
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(2000); // Mais 2s rodando
+    });
+
+    expect(result.current.status).toBe('running');
+    expect(result.current.elapsed).toBeGreaterThanOrEqual(elapsedAtPause + 2);
+
+    let finalSecs = 0;
+    act(() => {
+      finalSecs = result.current.stop();
+    });
+
+    // Tempo líquido final deve ser ~5s (3s + 2s), ignorando os 5s em pausa
+    expect(finalSecs).toBeLessThan(7);
+    expect(finalSecs).toBeGreaterThanOrEqual(5);
+  });
 });

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { motion } from 'framer-motion';
 import { GameProvider, useGame } from './hooks/useGameState';
@@ -15,32 +15,20 @@ import { TeamScreen } from './components/team/TeamScreen';
 import { DexScreen } from './components/dex/DexScreen';
 import { DiaryScreen } from './components/diary/DiaryScreen';
 import { OnboardingTour } from './components/onboarding/OnboardingTour';
-import { caterpieIcon, envUrl } from './lib/assets';
+import { SplashScreen } from './components/layout/SplashScreen';
+import { ProfessorPatchNotesModal, shouldShowProfessorPatchNotes } from './components/common/ProfessorPatchNotesModal';
+import { api } from './api/endpoints';
+import { envUrl } from './lib/assets';
 import type { SpawnedPokemon, TabId } from './types';
-
-function Splash({ offline, onRetry }: { offline: boolean; onRetry: () => void }) {
-  return (
-    <div className="absolute inset-0 z-[80] flex flex-col items-center justify-center gap-4 bg-gradient-to-b from-leaf to-ocean p-8 text-center text-white">
-      <img src={caterpieIcon} alt="Pokémoro" className="h-28 w-28 rounded-[1.6rem] shadow-2xl" />
-      <h1 className="text-3xl font-black drop-shadow">Pokémoro</h1>
-      {offline ? (
-        <>
-          <p className="text-sm font-extrabold">Não foi possível carregar os dados locais do aplicativo.</p>
-          <button id="btn-retry" className="btn bg-white text-emerald-700 font-black shadow-lg mt-2" onClick={onRetry}>Tentar novamente</button>
-        </>
-      ) : (
-        <p className="animate-pulse text-sm font-extrabold">Acordando os Pokémon...</p>
-      )}
-    </div>
-  );
-}
 
 function Shell() {
   const { loading, offline, profile, tab, setTab, refreshAll } = useGame();
+  const [splashFinished, setSplashFinished] = useState(false);
   const [sessionRunning, setSessionRunning] = useState(false);
   const [active, setActive] = useState<{ spawnId: string; stage: 'polaroid' | 'snack'; photoDataUrl?: string } | null>(null);
   const [seen, setSeen] = useState<Set<string>>(new Set());
   const [shop, setShop] = useState(false);
+  const [showPatchNotes, setShowPatchNotes] = useState(false);
   const [tourTimer, setTourTimer] = useState<{ seconds: number; running: boolean } | null>(null);
   const { coffeeBreak } = useGame();
 
@@ -52,20 +40,105 @@ function Shell() {
     });
   }, [seen]);
 
-  // Callback para o tour mudar aba
+  // Retorno automático para a aba de foco caso o usuário saia/minimize ou recarregue o app com sessão ativa
+  useEffect(() => {
+    const handleReturnToFocus = () => {
+      try {
+        const raw = localStorage.getItem('pokemoro_active_session');
+        if (raw) {
+          const saved = JSON.parse(raw);
+          if (saved && saved.sessionId) {
+            setTab('focus');
+          }
+        }
+      } catch {}
+    };
+
+    handleReturnToFocus();
+    window.addEventListener('focus', handleReturnToFocus);
+    window.addEventListener('pageshow', handleReturnToFocus);
+    const onVisChange = () => {
+      if (document.visibilityState === 'visible') {
+        handleReturnToFocus();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisChange);
+
+    return () => {
+      window.removeEventListener('focus', handleReturnToFocus);
+      window.removeEventListener('pageshow', handleReturnToFocus);
+      document.removeEventListener('visibilitychange', onVisChange);
+    };
+  }, [setTab]);
+
+  // Sincronização automática com o Supabase ao entrar no app ou reconectar à internet:
+  // Identifica se está conectado e envia pokémons, horas e insígnias para atualizar o banco
+  useEffect(() => {
+    let syncTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    const triggerFullSync = () => {
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        if (syncTimeout) clearTimeout(syncTimeout);
+        syncTimeout = setTimeout(() => {
+          void api.syncFullUserState();
+        }, 500);
+      }
+    };
+
+    triggerFullSync();
+
+    window.addEventListener('online', triggerFullSync);
+    window.addEventListener('focus', triggerFullSync);
+    window.addEventListener('pageshow', triggerFullSync);
+    const onVis = () => {
+      if (document.visibilityState === 'visible') {
+        triggerFullSync();
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+
+    return () => {
+      if (syncTimeout) clearTimeout(syncTimeout);
+      window.removeEventListener('online', triggerFullSync);
+      window.removeEventListener('focus', triggerFullSync);
+      window.removeEventListener('pageshow', triggerFullSync);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, []);
+
+  const isTour = profile !== null && !profile.hasCompletedOnboarding;
+  const spawn = coffeeBreak?.spawns.find((s) => s.spawnId === active?.spawnId);
+  const bg = envUrl(profile?.activeEnvironment ?? 'greengrass');
+
+  // Exibição automática do Boletim de Novidades do Professor Ricardo
+  useEffect(() => {
+    if (splashFinished && !loading) {
+      if (!isTour && shouldShowProfessorPatchNotes()) {
+        setShowPatchNotes(true);
+      }
+    }
+  }, [splashFinished, loading, isTour]);
+
+  // Callback para o tour interativo trocar de aba
   const handleTourSetTab = useCallback((t: TabId) => {
     setTab(t);
   }, [setTab]);
-
-  const spawn = coffeeBreak?.spawns.find((s) => s.spawnId === active?.spawnId);
-  const bg = envUrl(profile?.activeEnvironment ?? 'greengrass');
-  const isTour = profile !== null && !profile.hasCompletedOnboarding;
 
   return (
     <MobileFrame>
       <img src={bg} alt="" className="absolute inset-0 h-full w-full object-cover" draggable={false} />
 
-      {(loading || offline) && <Splash offline={offline} onRetry={() => void refreshAll()} />}
+      {/* Tela de Carregamento Estilo Pokémon GO com arte de festival e barra de progresso */}
+      <AnimatePresence>
+        {!splashFinished && (
+          <SplashScreen
+            dataLoaded={!loading}
+            offline={offline}
+            onRetry={() => void refreshAll()}
+            onFinished={() => setSplashFinished(true)}
+          />
+        )}
+      </AnimatePresence>
 
       {!loading && !offline && (
         <>
@@ -117,9 +190,24 @@ function Shell() {
               key="onboarding-tour"
               onSetTab={handleTourSetTab}
               onTourTimer={setTourTimer}
-              onCompleted={async () => { await refreshAll(); }}
+              onCompleted={async () => {
+                await refreshAll();
+                if (shouldShowProfessorPatchNotes()) {
+                  setShowPatchNotes(true);
+                }
+              }}
             />
           )}
+
+          {/* Boletim de Atualizações do Professor Ricardo */}
+          <AnimatePresence>
+            {showPatchNotes && (
+              <ProfessorPatchNotesModal
+                key="professor-patch-notes"
+                onClose={() => setShowPatchNotes(false)}
+              />
+            )}
+          </AnimatePresence>
 
           <Toasts />
         </>

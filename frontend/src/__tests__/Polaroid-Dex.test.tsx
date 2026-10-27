@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { PolaroidModal } from '../components/dex/PolaroidModal';
 import { DexScreen } from '../components/dex/DexScreen';
+import { offlineEngine } from '../lib/offline-engine';
 import type { SpawnedPokemon, FocusDex, UserProfile } from '../types';
 
 const mockSpawn: SpawnedPokemon = {
@@ -64,12 +65,16 @@ const mockDex: FocusDex = {
 };
 
 const mockRefreshDex = vi.fn().mockResolvedValue(undefined);
+const mockRefreshProfile = vi.fn().mockResolvedValue(undefined);
+const mockToast = vi.fn();
 
 vi.mock('../hooks/useGameState', () => ({
   useGame: () => ({
     profile: mockProfile,
     dex: mockDex,
     refreshDex: mockRefreshDex,
+    refreshProfile: mockRefreshProfile,
+    toast: mockToast,
   }),
 }));
 
@@ -127,6 +132,29 @@ describe('components/dex/PolaroidModal', () => {
     expect(screen.queryByText(/🍪 \+1 Biscoito/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Continuar/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Registrar na Focus Dex/i })).not.toBeInTheDocument();
+  });
+
+  it('deve conceder 1 biscoito e 25 moedas de foco na offlineEngine ao salvar nova pose', () => {
+    localStorage.clear();
+    const initialProfile = offlineEngine.getProfile();
+    const initialCoins = initialProfile.focusCoins;
+    const initialBiscuits = initialProfile.inventory.basic;
+
+    // Registra uma pose nova (Bulbasaur estilo 2)
+    const result = offlineEngine.saveDexPhoto(1, 2, 'data:image/png;base64,mock', false);
+    expect(result.ok).toBe(true);
+    expect(result.rewarded).toBe(true);
+
+    const updatedProfile = offlineEngine.getProfile();
+    expect(updatedProfile.focusCoins).toBe(initialCoins + 25);
+    expect(updatedProfile.inventory.basic).toBe(initialBiscuits + 1);
+
+    // Se registrar a mesma pose novamente, não deve conceder recompensa duplicada
+    const repeatResult = offlineEngine.saveDexPhoto(1, 2, 'data:image/png;base64,mock2', false);
+    expect(repeatResult.rewarded).toBe(false);
+    const unchangedProfile = offlineEngine.getProfile();
+    expect(unchangedProfile.focusCoins).toBe(initialCoins + 25);
+    expect(unchangedProfile.inventory.basic).toBe(initialBiscuits + 1);
   });
 });
 

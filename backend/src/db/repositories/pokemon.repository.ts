@@ -1,6 +1,6 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { getDatabase } from '../client.js';
-import { pokemonFriendships, userPokemon, focusDexEntries } from '../schema.js';
+import { pokemonFriendships, userPokemon, focusDexEntries, users, inventories } from '../schema.js';
 import { UserPokemonDTO, StudyRole } from '../../dtos/team.dto.js';
 import { FocusDexEntryDTO, SleepStyle, PokemonVariant } from '../../dtos/index.js';
 import crypto from 'crypto';
@@ -170,6 +170,12 @@ export class PokemonRepository {
         photoDataUrl: photoDataUrl || null,
         discoveredAt: new Date().toISOString(),
       }).run();
+
+      // Concede recompensa de descoberta de nova pose (+25 Moedas e +1 Biscoito de Café)
+      try {
+        this.db.run(sql`UPDATE users SET focus_coins = focus_coins + 25 WHERE id = ${userId}`);
+        this.db.run(sql`UPDATE inventories SET biscuits_basic = biscuits_basic + 1 WHERE user_id = ${userId}`);
+      } catch {}
     } else if (photoDataUrl) {
       this.db.update(focusDexEntries)
         .set({ photoDataUrl })
@@ -286,5 +292,14 @@ export class PokemonRepository {
         .where(and(eq(userPokemon.userId, userId), eq(userPokemon.id, pokemonIds[slot])))
         .run();
     }
+  }
+
+  public renamePokemon(userId: string, id: string, newNickname: string): void {
+    const clean = newNickname.trim();
+    if (!clean) throw new Error('Nome inválido');
+    this.db.update(userPokemon)
+      .set({ nickname: clean })
+      .where(and(eq(userPokemon.userId, userId), eq(userPokemon.id, id)))
+      .run();
   }
 }

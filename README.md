@@ -147,7 +147,7 @@ Pokemoro/
 │   ├── public/              # Assets estáticos, sprites e balões pixelados
 │   └── src/                 # Componentes, hooks, testes Vitest e engine de foco
 ├── supabase/                # Migrações SQL e esquemas de dados da nuvem
-├── pokemoro-v1.0.0.apk       # APK oficial de lançamento
+├── pokemoro.apk              # APK oficial de instalação Android
 └── README.md                # Documentação completa do projeto
 ```
 

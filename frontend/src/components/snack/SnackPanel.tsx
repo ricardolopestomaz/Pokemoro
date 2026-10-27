@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Cookie, Heart, X } from 'lucide-react';
+import { Heart, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { api } from '../../api/endpoints';
 import { useGame } from '../../hooks/useGameState';
 import { PokemonImage } from '../campsite/PokemonImage';
 import { sfx } from '../../lib/sfx';
+import { recordQuestAction } from '../../lib/quests';
+import { PokeBiscuitIcon } from '../common/PokemonThemedIcons';
 import type { BiscuitType, SpawnedPokemon, UserPokemon } from '../../types';
 
 interface Props {
@@ -28,9 +30,30 @@ export function SnackPanel({ spawnId, onClose }: Props) {
   const [bursts, setBursts] = useState<Burst[]>([]);
   const [recruited, setRecruited] = useState<UserPokemon | null>(null);
   const [chomp, setChomp] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const tick = () => setNow(Date.now());
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const expiresAt = useMemo(() => {
+    if (!spawn) return Date.now();
+    if (spawn.expiresAt && spawn.expiresAt > 0) return spawn.expiresAt;
+    if (spawn.spawnedAt && spawn.spawnedAt > 0) return spawn.spawnedAt + 30 * 60 * 1000;
+    const match = spawn.spawnId?.match(/^sp_(\d+)_/);
+    if (match) {
+      const ts = Number(match[1]);
+      if (!isNaN(ts) && ts > 0) return ts + 30 * 60 * 1000;
+    }
+    return Date.now() + 30 * 60 * 1000;
+  }, [spawn?.expiresAt, spawn?.spawnedAt, spawn?.spawnId]);
 
   if (!spawn || !profile) return null;
   const done = spawn.currentFriendshipPoints >= spawn.maxFriendshipPoints;
+  const msRemaining = Math.max(0, expiresAt - now);
+  const minutesRemaining = Math.max(1, Math.ceil(msRemaining / 60000));
 
   const addBursts = (items: Burst[]) => {
     setBursts((b) => [...b, ...items]);
@@ -43,6 +66,7 @@ export function SnackPanel({ spawnId, onClose }: Props) {
     sfx.munch();
     try {
       const res = await api.feed(spawn.spawnId, type);
+      recordQuestAction('feed', 1);
       patchInventory(res.updatedInventory);
       patchSpawn(spawn.spawnId, {
         currentFriendshipPoints: res.newFriendshipPoints,
@@ -76,18 +100,35 @@ export function SnackPanel({ spawnId, onClose }: Props) {
     }
   };
 
+  const handleClose = () => {
+    sfx.tap();
+    if (spawn.isAlreadyRecruited || done || recruited) {
+      removeSpawn(spawn.spawnId);
+    }
+    onClose();
+  };
+
   return (
     <motion.div
-      className="absolute inset-0 z-[55] flex flex-col bg-black/25"
+      className="absolute inset-0 z-[55] flex flex-col bg-black/30 backdrop-blur-[2px]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      onClick={handleClose}
     >
-      <button id="btn-close-snack" onClick={() => { sfx.tap(); onClose(); }} className="glass absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full active:scale-90" aria-label="Fechar">
+      <button
+        id="btn-close-snack"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleClose();
+        }}
+        className="glass absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full active:scale-90 shadow-md"
+        aria-label="Fechar"
+      >
         <X size={20} />
       </button>
 
-      {/* Metade superior: Pokémon */}
+      {/* Metade superior: Pokémon (clicar aqui fecha o modal) */}
       <div className="relative flex flex-1 items-end justify-center overflow-hidden pb-4">
         <motion.div
           key={chomp}
@@ -124,12 +165,13 @@ export function SnackPanel({ spawnId, onClose }: Props) {
         </AnimatePresence>
       </div>
 
-      {/* Metade inferior: painel branco */}
+      {/* Metade inferior: painel branco (stopPropagation para não fechar ao interagir com biscoitos) */}
       <motion.div
+        onClick={(e) => e.stopPropagation()}
         initial={{ y: 300 }}
         animate={{ y: 0 }}
         transition={{ type: 'spring', stiffness: 240, damping: 26 }}
-        className="rounded-t-[2rem] bg-white px-5 pb-6 pt-5 shadow-[0_-10px_30px_rgba(0,0,0,0.25)]"
+        className="rounded-t-[2.2rem] bg-white px-5 pb-6 pt-5 shadow-[0_-10px_35px_rgba(0,0,0,0.3)]"
       >
         <h2 className="text-center text-2xl font-black text-love">
           Nível de Amizade {spawn.currentFriendshipPoints}
@@ -147,6 +189,16 @@ export function SnackPanel({ spawnId, onClose }: Props) {
               </motion.div>
             );
           })}
+        </div>
+
+        {/* Indicador de expiração de 30 minutos por ciclo */}
+        <div className="mt-2.5 flex items-center justify-center">
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-0.5 text-[11px] font-bold text-amber-800 border border-amber-200/80 shadow-xs">
+            <span>⏱️</span>
+            <span>
+              {minutesRemaining}m restantes antes de partir
+            </span>
+          </span>
         </div>
 
         <div className="mt-4 flex items-center gap-3 border-t border-ink/10 pt-3">
@@ -175,8 +227,8 @@ export function SnackPanel({ spawnId, onClose }: Props) {
                 className="btn flex flex-col items-center gap-1 !px-2 !py-2.5"
                 style={{ ['--b' as string]: '#fff7e0', ['--bd' as string]: '#e8d9a8', color: '#4a3b00' }}
               >
-                <span className="relative flex h-11 w-11 items-center justify-center rounded-full shadow-inner" style={{ background: `radial-gradient(circle at 30% 30%, ${b.from}, ${b.to})` }}>
-                  <Cookie size={24} color="#fff" />
+                <span className="relative flex h-11 w-11 items-center justify-center rounded-full shadow-inner bg-slate-100 border border-slate-200/50">
+                  <PokeBiscuitIcon size={28} type={b.type.toLowerCase() as any} />
                   <span className="absolute -right-1 -top-1 rounded-full bg-love px-1.5 text-[10px] font-black text-white">{qty}</span>
                 </span>
                 <span className="text-[11px] font-black leading-none">{b.label}</span>

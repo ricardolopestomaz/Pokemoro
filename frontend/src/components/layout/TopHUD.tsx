@@ -1,12 +1,15 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Coins, Cookie, Flame, Zap, Trophy } from 'lucide-react';
+import { Flame, Zap } from 'lucide-react';
 import { useGame } from '../../hooks/useGameState';
 import { caterpieIcon, envUrl } from '../../lib/assets';
 import { PokemonImage } from '../campsite/PokemonImage';
 import { ProfileModal } from '../profile/ProfileModal';
 import { LeaderboardModal } from '../leaderboard/LeaderboardModal';
+import { PokeBadgeIcon, PokeBiscuitIcon, PokeCoinIcon } from '../common/PokemonThemedIcons';
 import { sfx } from '../../lib/sfx';
+import { getStreakStatus } from '../../lib/date-utils';
+import { getSupabaseClient, getOrCreateSupabaseUser, isSupabaseConfigured } from '../../lib/supabase';
 
 interface Props {
   onShop: () => void;
@@ -20,6 +23,111 @@ export function TopHUD({ onShop }: Props) {
   const [leaderboardModal, setLeaderboardModal] = useState(false);
   const [avatar, setAvatar] = useState<string>(() => localStorage.getItem('pokemoro_avatar') || 'caterpie');
   const [avatarBg, setAvatarBg] = useState<string>(() => localStorage.getItem('pokemoro_avatar_bg') || 'greengrass');
+  const [dbStreak, setDbStreak] = useState<number | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    let channel: any = null;
+
+    const queryDatabaseStreak = async () => {
+      try {
+        const client = getSupabaseClient();
+        if (!client || !isSupabaseConfigured()) return;
+
+        let targetId = typeof localStorage !== 'undefined' ? localStorage.getItem('pokemoro_supabase_user_id') : null;
+        if (!targetId) {
+          const user = await getOrCreateSupabaseUser();
+          if (user?.id) targetId = user.id;
+        }
+        if (!targetId && profile?.id) {
+          targetId = profile.id;
+        }
+        if (!targetId) return;
+
+        // Consulta direta nas tabelas leaderboard_stats e profiles
+        const [statsRes, profRes] = await Promise.all([
+          client.from('leaderboard_stats').select('current_streak').eq('user_id', targetId).maybeSingle(),
+          client.from('profiles').select('streak_days').eq('id', targetId).maybeSingle(),
+        ]);
+
+        if (!active) return;
+
+        const val = statsRes.data?.current_streak ?? profRes.data?.streak_days;
+        if (val !== undefined && val !== null) {
+          setDbStreak(Number(val));
+        }
+      } catch (err) {
+        console.warn('[TopHUD] Erro ao consultar foguinho diretamente do banco:', err);
+      }
+    };
+
+    // 1. Consulta direta imediata ao entrar / iniciar o app
+    void queryDatabaseStreak();
+
+    // 2. Realtime listener caso o foguinho seja atualizado no banco
+    const setupRealtime = async () => {
+      const client = getSupabaseClient();
+      if (!client || !isSupabaseConfigured()) return;
+
+      let targetId = typeof localStorage !== 'undefined' ? localStorage.getItem('pokemoro_supabase_user_id') : null;
+      if (!targetId) {
+        const user = await getOrCreateSupabaseUser();
+        if (user?.id) targetId = user.id;
+      }
+      if (!targetId && profile?.id) {
+        targetId = profile.id;
+      }
+      if (!targetId || !active) return;
+
+      channel = client
+        .channel(`hud_streak_${targetId}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'leaderboard_stats', filter: `user_id=eq.${targetId}` },
+          (payload) => {
+            const newStreak = (payload.new as any)?.current_streak;
+            if (newStreak !== undefined && newStreak !== null) {
+              setDbStreak(Number(newStreak));
+            } else {
+              void queryDatabaseStreak();
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${targetId}` },
+          (payload) => {
+            const newStreak = (payload.new as any)?.streak_days;
+            if (newStreak !== undefined && newStreak !== null) {
+              setDbStreak(Number(newStreak));
+            } else {
+              void queryDatabaseStreak();
+            }
+          }
+        )
+        .subscribe();
+    };
+
+    void setupRealtime();
+
+    // 3. Consulta ao focar na janela / voltar ao app
+    const onFocus = () => { void queryDatabaseStreak(); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+
+    // 4. Polling regular a cada 4 segundos para garantia absoluta
+    const interval = setInterval(queryDatabaseStreak, 4000);
+
+    return () => {
+      active = false;
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
+      clearInterval(interval);
+      if (channel) {
+        channel.unsubscribe();
+      }
+    };
+  }, [profile?.id]);
 
   const now = new Date();
   const day = now.getDate();
@@ -28,6 +136,10 @@ export function TopHUD({ onShop }: Props) {
   const fp = coffeeBreak?.focusPower ?? 0;
   const pct = Math.min(100, Math.max(5, (fp / 600) * 100));
   const biscuits = profile ? profile.inventory.basic + profile.inventory.great + profile.inventory.master : 0;
+  const streakDisplay = dbStreak !== null ? dbStreak : (profile?.streakDays ?? 0);
+  const streakStatus = useMemo(() => {
+    return getStreakStatus(streakDisplay, profile?.lastStudyDate ?? null);
+  }, [streakDisplay, profile?.lastStudyDate]);
 
   const handleSelectAvatar = (newIcon: string, newBg: string) => {
     setAvatar(newIcon);
@@ -91,11 +203,21 @@ export function TopHUD({ onShop }: Props) {
             </div>
           </button>
           <span
-            className="absolute -bottom-1 -right-1 z-20 flex items-center gap-0.5 rounded-full bg-warm-orange px-1.5 py-0.2 text-[9px] sm:text-[10px] font-black text-white shadow streak-icon"
-            title={`${profile?.streakDays ?? 0} dias consecutivos de estudo`}
+            className={`absolute -bottom-1 -right-1 z-20 flex items-center gap-0.5 rounded-full px-1.5 py-0.2 text-[9px] sm:text-[10px] font-black shadow streak-icon transition-colors ${
+              streakDisplay > 0
+                ? (streakStatus.activeToday
+                  ? 'bg-warm-orange text-white ring-1 ring-white/50'
+                  : 'bg-warm-orange/90 text-white animate-pulse')
+                : 'bg-slate-500/80 text-white/90'
+            }`}
+            title={
+              streakDisplay > 0
+                ? `${streakDisplay} dias consecutivos de estudo`
+                : '0 dias de ofensiva'
+            }
           >
             <Flame size={9} fill="currentColor" />
-            {profile?.streakDays ?? 0}
+            {streakDisplay}
           </span>
         </div>
 
@@ -115,7 +237,9 @@ export function TopHUD({ onShop }: Props) {
             />
           </div>
           <div className="mt-0.5 flex items-center justify-between text-[9px] sm:text-[10px] font-bold text-ink/60">
-            <span className="whitespace-nowrap truncate">{profile ? `${profile.streakDays} dia(s) de ofensiva` : '...'}</span>
+            <span className="whitespace-nowrap truncate">
+              {profile ? `${streakDisplay} dia(s) de ofensiva${streakStatus.activeToday ? ' 🔥' : streakStatus.pendingToday ? ' ⏳' : ''}` : '...'}
+            </span>
             <span className="text-leaf-dark font-black whitespace-nowrap ml-1 shrink-0">Meta 600</span>
           </div>
         </div>
@@ -127,27 +251,27 @@ export function TopHUD({ onShop }: Props) {
               className="pill-label flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-black text-ink shadow-sm whitespace-nowrap"
               title="Moedas de Foco (ganhas ao estudar)"
             >
-              <Coins size={12} className="text-sleep-yellow-dark shrink-0" fill="#ffcb05" />
+              <PokeCoinIcon size={14} className="shrink-0" />
               <span>{profile?.focusCoins ?? 0}</span>
             </div>
             <button
               id="btn-top-leaderboard"
               onClick={() => { sfx.tap(); setLeaderboardModal(true); }}
-              className="pill-label flex items-center justify-center p-1 sm:p-1.5 shadow-sm transition-transform active:scale-95 text-[#f59e0b] hover:border-[#f59e0b]"
+              className="pill-label relative flex items-center justify-center p-1 sm:p-1.5 shadow-sm transition-transform active:scale-95 text-[#f59e0b] hover:border-[#f59e0b] before:absolute before:-inset-2 before:content-['']"
               title="Ranking Global de Treinadores"
               aria-label="Ranking Global"
             >
-              <Trophy size={13} fill="currentColor" />
+              <PokeBadgeIcon size={15} />
             </button>
           </div>
           <button
             onClick={() => { sfx.tap(); onShop(); }}
-            className="pill-label flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-xs font-black text-ink shadow-sm transition-transform active:scale-95 hover:border-warm-orange whitespace-nowrap"
+            className="pill-label relative flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-xs font-black text-ink shadow-sm transition-transform active:scale-95 hover:border-warm-orange whitespace-nowrap before:absolute before:-inset-1.5 before:content-['']"
             aria-label="Abrir cantina de biscoitos"
             id="btn-open-shop"
             title="Biscoitos de Amizade (clique para abrir a loja)"
           >
-            <Cookie size={12} className="text-warm-orange shrink-0" fill="#ff8c42" />
+            <PokeBiscuitIcon size={14} type="basic" className="shrink-0" />
             <span>{biscuits}</span>
           </button>
         </div>

@@ -1,12 +1,67 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Flame, Clock, RefreshCw, X, Cloud, CloudOff, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Flame, Clock, RefreshCw, X, Sparkles, CheckCircle2, Trophy } from 'lucide-react';
 import { api } from '../../api/endpoints';
 import { PokemonImage } from '../campsite/PokemonImage';
 import { envUrl } from '../../lib/assets';
 import { sfx } from '../../lib/sfx';
-import { isSupabaseConfigured } from '../../lib/supabase';
+import { BadgeStrip } from '../common/BadgeStrip';
+import { badgeCountForStreak, getEarnedBadgeCount } from '../../lib/badges';
+import { readLiveTeam } from '../../lib/sync-queue';
 import type { LeaderboardEntryDTO, LeaderboardTimeframe, LeaderboardResponseDTO } from '../../types';
+
+function RankMedal({ rank }: { rank: number }) {
+  if (rank === 1) {
+    return (
+      <div className="flex items-center justify-center select-none" title="1º Lugar - Fita Master">
+        <img
+          src="/medals/rank_1.png"
+          onError={(e) => {
+            e.currentTarget.src = 'https://i0.wp.com/www.serebii.net/games/ribbons/toughcontestmasterrankribbon-s.png?w=640&ssl=1';
+          }}
+          alt="1º Lugar"
+          className="h-8 w-8 object-contain drop-shadow-sm transition-transform hover:scale-110"
+          draggable={false}
+        />
+      </div>
+    );
+  }
+  if (rank === 2) {
+    return (
+      <div className="flex items-center justify-center select-none" title="2º Lugar - Fita Super">
+        <img
+          src="/medals/rank_2.png"
+          onError={(e) => {
+            e.currentTarget.src = 'https://i0.wp.com/www.serebii.net/games/ribbons/smartcontestsuperrankribbon-s.png?w=640&ssl=1';
+          }}
+          alt="2º Lugar"
+          className="h-7 w-7 object-contain drop-shadow-sm transition-transform hover:scale-110"
+          draggable={false}
+        />
+      </div>
+    );
+  }
+  if (rank === 3) {
+    return (
+      <div className="flex items-center justify-center select-none" title="3º Lugar - Fita Normal">
+        <img
+          src="/medals/rank_3.png"
+          onError={(e) => {
+            e.currentTarget.src = 'https://i0.wp.com/www.serebii.net/games/ribbons/coolcontestnormalrankribbon-s.png?w=640&ssl=1';
+          }}
+          alt="3º Lugar"
+          className="h-6.5 w-6.5 object-contain drop-shadow-sm transition-transform hover:scale-110"
+          draggable={false}
+        />
+      </div>
+    );
+  }
+  return (
+    <span className="text-xs font-black text-slate-400 font-mono tracking-tight select-none">
+      #{rank}
+    </span>
+  );
+}
 
 interface Props {
   onClose: () => void;
@@ -25,8 +80,6 @@ export function LeaderboardModal({ onClose }: Props) {
   const [syncing, setSyncing] = useState(false);
   const [data, setData] = useState<LeaderboardResponseDTO | null>(null);
   const [pendingCount, setPendingCount] = useState<number>(0);
-  const isOnline = typeof navigator === 'undefined' || navigator.onLine;
-  const isCloud = isSupabaseConfigured() && isOnline;
 
   const loadLeaderboard = useCallback(async (tf: LeaderboardTimeframe) => {
     setLoading(true);
@@ -66,13 +119,6 @@ export function LeaderboardModal({ onClose }: Props) {
     return m > 0 ? `${h}h ${m}m` : `${h}h`;
   };
 
-  const getRankBadge = (rank: number) => {
-    if (rank === 1) return { bg: 'bg-[#ffcb05] text-[#7a5900]', icon: '🥇', border: 'border-[#ffcb05]' };
-    if (rank === 2) return { bg: 'bg-[#cfd8dc] text-[#37474f]', icon: '🥈', border: 'border-[#cfd8dc]' };
-    if (rank === 3) return { bg: 'bg-[#d7ccc8] text-[#4e342e]', icon: '🥉', border: 'border-[#d7ccc8]' };
-    return { bg: 'bg-ink/5 text-ink/70', icon: `#${rank}`, border: 'border-transparent' };
-  };
-
   return (
     <motion.div
       className="absolute inset-0 z-[75] flex items-end bg-black/60 backdrop-blur-xs"
@@ -89,29 +135,17 @@ export function LeaderboardModal({ onClose }: Props) {
         transition={{ type: 'spring', damping: 28, stiffness: 280 }}
         className="flex h-[90vh] w-full flex-col rounded-t-[2.4rem] bg-cream pb-6 pt-5 shadow-2xl"
       >
-        {/* Header Superior */}
+        {/* Header Superior com Troféu Oficial */}
         <div className="border-b border-ink/10 px-5 pb-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sleep-yellow/30 text-sleep-yellow-dark shadow-xs">
-                <Trophy size={22} />
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-100/90 text-amber-600 shadow-xs border border-amber-200">
+                <Trophy size={24} className="text-amber-500 fill-amber-400 drop-shadow-xs" />
               </div>
               <div>
-                <div className="flex items-center gap-1.5">
-                  <h2 className="text-lg font-black text-ink">Ranking Global</h2>
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${
-                      isCloud
-                        ? 'bg-leaf/15 text-leaf-dark'
-                        : 'bg-warm-orange/15 text-warm-orange'
-                    }`}
-                  >
-                    {isCloud ? <Cloud size={10} /> : <CloudOff size={10} />}
-                    {isCloud ? 'Supabase' : 'Offline-First'}
-                  </span>
-                </div>
+                <h2 className="text-lg font-black text-ink">Ranking Global</h2>
                 <p className="text-[10px] font-bold text-ink/60">
-                  Pokémoro Study League · Sincronização em Nuvem
+                  Pokémoro Study League · Classificação de Estudantes
                 </p>
               </div>
             </div>
@@ -163,11 +197,12 @@ export function LeaderboardModal({ onClose }: Props) {
         {data?.userSummary && (
           <div className="mx-4 mt-3 rounded-2xl border-2 border-leaf/60 bg-gradient-to-r from-leaf/15 to-sleep-yellow/15 p-3 shadow-sm">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
                 <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white shadow-sm">
                   <img
                     src={envUrl(data.userSummary.avatarBg || 'greengrass')}
                     alt="Cenário"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     className="absolute inset-0 h-full w-full object-cover"
                   />
                   <div className="relative z-10 flex h-full w-full items-center justify-center">
@@ -181,41 +216,54 @@ export function LeaderboardModal({ onClose }: Props) {
                   </div>
                 </div>
 
-                <div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-xs font-black text-ink">{data.userSummary.displayName}</span>
-                    <span className="rounded-full bg-leaf px-1.5 py-0.2 text-[8px] font-black uppercase text-white">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-xs font-black text-ink truncate max-w-[130px]">{data.userSummary.displayName}</span>
+                    <span className="rounded-full bg-leaf px-1.5 py-0.2 text-[8px] font-black uppercase text-white shrink-0">
                       Você
                     </span>
-                    {/* Fileira horizontal com mini-sprites da equipe do usuário */}
-                    {data.userSummary.equippedTeam && data.userSummary.equippedTeam.length > 0 && (
-                      <div className="flex items-center gap-0.5 ml-0.5 bg-white/80 px-1.5 py-0.5 rounded-full border border-leaf/40 shadow-2xs">
-                        {data.userSummary.equippedTeam.slice(0, 5).map((pokeId, idx) => (
-                          <div key={`user-team-${pokeId}-${idx}`} className="h-5 w-5 shrink-0 flex items-center justify-center overflow-hidden">
-                            <PokemonImage
-                              pokemonId={pokeId}
-                              menu
-                              alt={`Equipe #${pokeId}`}
-                              className="h-full w-full object-contain scale-120 drop-shadow-2xs"
-                            />
-                          </div>
-                        ))}
+                    <span className="flex items-center gap-0.5 text-[10px] font-bold text-warm-orange shrink-0 ml-1">
+                      <Flame size={10} fill="currentColor" /> {data.userSummary.streakDays}d
+                    </span>
+                    <span className="text-[10px] font-bold text-leaf-dark shrink-0 ml-1">
+                      • {formatMinutes(data.userSummary.minutesStudied)}
+                    </span>
+                  </div>
+
+                  {/* Fileira horizontal com mini-sprites da equipe e insígnias */}
+                  {(() => {
+                    const live = readLiveTeam();
+                    const userTeamList = (data.userSummary.equippedTeam && data.userSummary.equippedTeam.length > 0)
+                      ? data.userSummary.equippedTeam
+                      : (live.length > 0 ? live : [data.userSummary.avatarPokemonId || 10]);
+                    const userBadges = data.userSummary.badges ?? getEarnedBadgeCount(data.userSummary.streakDays);
+                    return (
+                      <div className="flex items-center gap-1 mt-1 flex-wrap">
+                        <div className="flex items-center gap-0.5 bg-white/90 px-1.5 py-0.5 rounded-full border border-leaf/40 shadow-2xs shrink-0">
+                          {userTeamList.slice(0, 5).map((member, idx) => {
+                            const pokeId = typeof member === 'number' ? member : (member?.pokemonId || 10);
+                            const variant = typeof member === 'object' && member?.variant ? member.variant : 'regular';
+                            return (
+                              <div key={`user-team-${pokeId}-${idx}`} className="relative h-4.5 w-4.5 shrink-0 flex items-center justify-center" title={`Equipe #${pokeId}`}>
+                                <PokemonImage
+                                  pokemonId={pokeId}
+                                  variant={variant}
+                                  menu
+                                  alt={`Equipe #${pokeId}`}
+                                  className="h-full w-full object-contain scale-110"
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {userBadges > 0 && <BadgeStrip count={userBadges} size={14} className="shrink-0" />}
                       </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 text-[10px] font-bold text-ink/70">
-                    <span className="flex items-center gap-0.5 text-warm-orange">
-                      <Flame size={11} fill="currentColor" /> {data.userSummary.streakDays} dias
-                    </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-0.5 text-leaf-dark">
-                      <Clock size={11} /> {formatMinutes(data.userSummary.minutesStudied)}
-                    </span>
-                  </div>
+                    );
+                  })()}
                 </div>
               </div>
 
-              <div className="text-right">
+              <div className="text-right shrink-0 pl-2">
                 <span className="text-[10px] font-black uppercase text-ink/50">Sua Posição</span>
                 <div className="text-lg font-black text-leaf-dark">
                   #{data.userSummary.rank}
@@ -234,31 +282,33 @@ export function LeaderboardModal({ onClose }: Props) {
             </div>
           ) : !data || data.entries.length === 0 ? (
             <div className="flex h-48 flex-col items-center justify-center text-center text-ink/50">
-              <Trophy size={32} className="opacity-30" />
+              <Trophy size={38} className="text-amber-400 opacity-40" />
               <p className="mt-2 text-xs font-bold">Nenhum registro de estudo ainda.</p>
               <p className="text-[10px] text-ink/40">Conclua um Pomodoro para entrar no ranking!</p>
             </div>
           ) : (
             <div className="flex flex-col gap-2 pb-6">
               {data.entries.map((entry: LeaderboardEntryDTO) => {
-                const badge = getRankBadge(entry.rank);
                 const isUser = entry.isCurrentUser;
                 return (
-                  <motion.div
+                  <div
                     key={`${entry.userId}-${entry.rank}`}
-                    layout
-                    className={`flex items-center justify-between rounded-2xl border bg-white p-2.5 shadow-xs transition-all ${
+                    className={`flex items-center justify-between rounded-2xl border p-2.5 shadow-xs transition-all ${
                       isUser
                         ? 'border-2 border-leaf bg-leaf/5'
-                        : `${badge.border} hover:bg-cream/50`
+                        : entry.rank === 1
+                        ? 'border-amber-300/60 bg-gradient-to-r from-amber-50/40 via-white to-white hover:bg-cream/50 shadow-xs'
+                        : entry.rank === 2
+                        ? 'border-slate-300/60 bg-gradient-to-r from-slate-50/40 via-white to-white hover:bg-cream/50 shadow-xs'
+                        : entry.rank === 3
+                        ? 'border-amber-700/25 bg-gradient-to-r from-orange-50/30 via-white to-white hover:bg-cream/50 shadow-xs'
+                        : 'border-ink/5 bg-white hover:bg-cream/50 shadow-2xs'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5">
-                      {/* Badge de Posição */}
-                      <div
-                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl font-black text-xs ${badge.bg}`}
-                      >
-                        {badge.icon}
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      {/* Medalha de Posição sem fundo pesado */}
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center bg-transparent">
+                        <RankMedal rank={entry.rank} />
                       </div>
 
                       {/* Avatar do Estudante com Fundo de Cenário */}
@@ -266,6 +316,7 @@ export function LeaderboardModal({ onClose }: Props) {
                         <img
                           src={envUrl(entry.avatarBg || 'greengrass')}
                           alt="Cenário"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
                           className="absolute inset-0 h-full w-full object-cover"
                         />
                         <div className="relative z-10 flex h-full w-full items-center justify-center">
@@ -279,51 +330,68 @@ export function LeaderboardModal({ onClose }: Props) {
                         </div>
                       </div>
 
-                      {/* Nome, Equipe e Streak */}
-                      <div>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-xs font-black text-ink">{entry.displayName}</span>
+                      {/* Nome, Streak, Equipe e Insígnias */}
+                      <div className="flex-1 min-w-0">
+                        {/* Linha 1: Nome, Sparkle, Tag Você e Streak */}
+                        <div className="flex items-center gap-1 min-w-0">
+                          <span className="text-xs font-black text-ink truncate max-w-[120px]">{entry.displayName}</span>
                           {entry.avatarVariant === 'shiny' && (
-                            <span title="Avatar Shiny!">
+                            <span title="Avatar Shiny!" className="shrink-0">
                               <Sparkles size={11} className="text-sleep-yellow-dark" />
                             </span>
                           )}
                           {isUser && (
-                            <span className="rounded-full bg-leaf px-1 text-[8px] font-black text-white">
+                            <span className="rounded-full bg-leaf px-1 text-[8px] font-black text-white shrink-0">
                               Você
                             </span>
                           )}
-                          {/* Fileira horizontal com os mini-sprites da equipe do jogador */}
-                          {entry.equippedTeam && entry.equippedTeam.length > 0 && (
-                            <div className="flex items-center gap-0.5 ml-0.5 bg-cream px-1.5 py-0.5 rounded-full border border-ink/10 shadow-2xs">
-                              {entry.equippedTeam.slice(0, 5).map((pokeId, tIdx) => (
-                                <div key={`${entry.userId}-team-${pokeId}-${tIdx}`} className="h-5 w-5 shrink-0 flex items-center justify-center overflow-hidden" title={`Pokémon #${pokeId}`}>
-                                  <PokemonImage
-                                    pokemonId={pokeId}
-                                    menu
-                                    alt={`Membro #${pokeId}`}
-                                    className="h-full w-full object-contain scale-120 drop-shadow-2xs"
-                                  />
-                                </div>
-                              ))}
+                          <span className="flex items-center gap-0.5 text-[9px] font-bold text-warm-orange shrink-0 ml-1">
+                            <Flame size={9} fill="currentColor" />
+                            <span>{entry.streakDays}d</span>
+                          </span>
+                        </div>
+
+                        {/* Linha 2: Equipe Pokémon e Insígnias alinhadas logo abaixo */}
+                        {(() => {
+                          const live = readLiveTeam();
+                          const teamList = (entry.equippedTeam && entry.equippedTeam.length > 0)
+                            ? entry.equippedTeam
+                            : (isUser && live.length > 0 ? live : [entry.avatarPokemonId || 10]);
+                          const entryBadges = entry.badges ?? (isUser ? getEarnedBadgeCount(entry.streakDays) : badgeCountForStreak(entry.streakDays));
+                          return (
+                            <div className="flex items-center gap-1 mt-1 flex-wrap">
+                              <div className="flex items-center gap-0.5 bg-cream px-1.5 py-0.5 rounded-full border border-ink/10 shadow-2xs shrink-0">
+                                {teamList.slice(0, 5).map((member, tIdx) => {
+                                  const pokeId = typeof member === 'number' ? member : (member?.pokemonId || 10);
+                                  const variant = typeof member === 'object' && member?.variant ? member.variant : 'regular';
+                                  return (
+                                    <div key={`${entry.userId}-team-${pokeId}-${tIdx}`} className="relative h-4.5 w-4.5 shrink-0 flex items-center justify-center" title={`Pokémon #${pokeId}`}>
+                                      <PokemonImage
+                                        pokemonId={pokeId}
+                                        variant={variant}
+                                        menu
+                                        alt={`Membro #${pokeId}`}
+                                        className="h-full w-full object-contain scale-110"
+                                      />
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              {entryBadges > 0 && <BadgeStrip count={entryBadges} size={14} className="shrink-0" />}
                             </div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-warm-orange">
-                          <Flame size={10} fill="currentColor" />
-                          <span>{entry.streakDays} dias seguidos</span>
-                        </div>
+                          );
+                        })()}
                       </div>
                     </div>
 
                     {/* Minutos Estudados */}
-                    <div className="text-right">
-                      <div className="text-xs font-black text-ink">
+                    <div className="text-right shrink-0 pl-2">
+                      <div className="text-xs font-black text-ink whitespace-nowrap">
                         {formatMinutes(entry.minutesStudied)}
                       </div>
                       <span className="text-[9px] font-bold text-ink/40 uppercase">Foco</span>
                     </div>
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>

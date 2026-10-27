@@ -13,12 +13,18 @@ export default defineConfig({
       name: 'serve-root-apk',
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
-          if (req.url === '/pokemoro.apk' || req.url === '/Pokemoro.apk') {
-            const apkPath = path.resolve(__dirname, '../Pokemoro.apk');
-            if (fs.existsSync(apkPath)) {
+          const urlLower = req.url ? req.url.toLowerCase() : '';
+          if (urlLower === '/pokemoro.apk' || urlLower === '/pokemoro-v1.0.0.apk') {
+            const candidates = [
+              path.resolve(__dirname, '../pokemoro.apk'),
+              path.resolve(__dirname, '../Pokemoro.apk'),
+              path.resolve(__dirname, '../pokemoro-v1.0.0.apk'),
+            ];
+            const apkPath = candidates.find((p) => fs.existsSync(p));
+            if (apkPath) {
               res.writeHead(200, {
                 'Content-Type': 'application/vnd.android.package-archive',
-                'Content-Disposition': 'attachment; filename="Pokemoro.apk"',
+                'Content-Disposition': 'attachment; filename="pokemoro.apk"',
               });
               fs.createReadStream(apkPath).pipe(res);
               return;
@@ -34,5 +40,6 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
+    testTimeout: 20000,
   },
 });
