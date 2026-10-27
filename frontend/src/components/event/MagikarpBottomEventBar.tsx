@@ -46,15 +46,12 @@ export function MagikarpBottomEventBar({
         {/* Linha 1: Cabeçalho Estilo Fortnite Battle Pass */}
         <div className="relative z-10 flex items-center justify-between gap-2 mb-1.5">
           <div className="flex items-center gap-2">
-            {/* Ícone Animado do Magikarp */}
-            <div className="relative w-8 h-8 flex items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-700 shadow-[0_0_12px_rgba(6,182,212,0.6)] p-0.5 shrink-0">
+            {/* Ícone Estilo Pokémon Sleep do Magikarp */}
+            <div className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/30 to-blue-700/40 border border-cyan-400/50 shadow-[0_0_12px_rgba(6,182,212,0.5)] p-0.5 shrink-0 overflow-hidden">
               <img
-                src="/assets/magikarp.gif"
+                src="/sprites/menu/regular/0129.png"
                 alt="Magikarp"
                 className="w-full h-full object-contain transform -scale-x-100"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/sprites/menu/regular/0129.png';
-                }}
               />
             </div>
 

@@ -38,7 +38,7 @@ export function MagikarpLakeCreature({ jumpMeters, onLaunchJumpGame, isShiny = f
     }
   };
 
-  const spriteSrc = isShiny ? '/assets/magikarp_shiny.gif' : '/assets/magikarp.gif';
+  const spriteSrc = isShiny ? '/sprites/menu/shiny/0129_s.png' : '/sprites/menu/regular/0129.png';
 
   return (
     <div className="absolute bottom-[240px] right-[24%] z-25 pointer-events-auto select-none">
