@@ -1,8 +1,9 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { MagikarpCommunityBar } from '../components/event/MagikarpCommunityBar';
+import { MagikarpBottomEventBar } from '../components/event/MagikarpBottomEventBar';
 import { MagikarpRainOverlay } from '../components/event/MagikarpRainOverlay';
+import { MagikarpLakeCreature } from '../components/event/MagikarpLakeCreature';
 import { MagikarpDevSwitcher } from '../components/event/MagikarpDevSwitcher';
 import { MagikarpEventModal } from '../components/event/MagikarpEventModal';
 import type {
@@ -11,7 +12,7 @@ import type {
   MagikarpMilestone,
 } from '../types/magikarp-event';
 
-describe('Componentes Visuais do Dia do Magikarp', () => {
+describe('Componentes Visuais do Dia do Magikarp (Fortnite Level UI)', () => {
   const mockGoal = {
     activeUsersCount: 2,
     baseMinutesPerUser: 120,
@@ -71,23 +72,41 @@ describe('Componentes Visuais do Dia do Magikarp', () => {
     },
   ];
 
-  it('deve renderizar a barra comunitária com progresso e minutos atuais', () => {
+  it('deve renderizar a barra de evento no rodapé (Fortnite HUD) com minutos e progresso', () => {
     const onOpen = vi.fn();
     render(
-      <MagikarpCommunityBar
+      <MagikarpBottomEventBar
         goal={mockGoal}
         phase="live"
-        onOpenEventHub={onOpen}
+        userMinutes={182}
+        hasUnclaimedMilestone={true}
+        onOpenEventPass={onOpen}
       />
     );
 
-    expect(screen.getByText(/Salto da Cachoeira/i)).toBeInTheDocument();
+    expect(screen.getByText(/META COLETIVA: A CACHOEIRA/i)).toBeInTheDocument();
     expect(screen.getByText('282')).toBeInTheDocument();
     expect(screen.getByText('300m')).toBeInTheDocument();
-    expect(screen.getByText('94% concluído')).toBeInTheDocument();
+    expect(screen.getByText('94%')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getByText(/Recompensas!/i));
     expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it('deve renderizar o Magikarp interativo no lago e permitir clicar', () => {
+    const onLaunch = vi.fn();
+    render(
+      <MagikarpLakeCreature
+        jumpMeters={1820}
+        onLaunchJumpGame={onLaunch}
+      />
+    );
+
+    const magikarpBtn = screen.getByRole('button');
+    expect(magikarpBtn).toBeInTheDocument();
+
+    fireEvent.click(magikarpBtn);
+    expect(screen.getByText(/Karp!/i)).toBeInTheDocument();
   });
 
   it('deve renderizar o overlay de chuva sem erros visuais', () => {
@@ -95,7 +114,7 @@ describe('Componentes Visuais do Dia do Magikarp', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('deve renderizar o modal principal do evento e permitir alternar abas', () => {
+  it('deve renderizar o passe de evento sem menus ou abas confusas', () => {
     const onClose = vi.fn();
     const onClaim = vi.fn();
 
@@ -112,13 +131,10 @@ describe('Componentes Visuais do Dia do Magikarp', () => {
       />
     );
 
-    expect(screen.getByText(/Dia do Magikarp/i)).toBeInTheDocument();
-    expect(screen.getByText(/Meta da Comunidade/i)).toBeInTheDocument();
-
-    // Clica na aba de progresso pessoal
-    fireEvent.click(screen.getByText(/Meu Progresso/i));
-    expect(screen.getByText(/182 minutos focados/i)).toBeInTheDocument();
-    expect(screen.getByText(/1820 metros de altura/i)).toBeInTheDocument();
+    expect(screen.getByText(/A Ascensão do Dragão/i)).toBeInTheDocument();
+    expect(screen.getByText(/PASSE DE EVENTO AO VIVO/i)).toBeInTheDocument();
+    expect(screen.getByText(/Primeiro Salto/i)).toBeInTheDocument();
+    expect(screen.getByText(/Resgatar! ⚡/i)).toBeInTheDocument();
   });
 
   it('deve permitir alternar fases no MagikarpDevSwitcher', () => {

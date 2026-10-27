@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { sfx } from '../../lib/sfx';
+import { playMagikarpCry, playGyaradosCry } from '../../lib/magikarpAudio';
 
 interface Props {
   isOpen: boolean;
@@ -20,6 +21,7 @@ export function MagikarpClimaxModal({ isOpen, onClose }: Props) {
 
     const timer1 = setTimeout(() => {
       setStep('leap');
+      playMagikarpCry(0.9);
       sfx.start();
     }, 2000);
 
@@ -30,6 +32,7 @@ export function MagikarpClimaxModal({ isOpen, onClose }: Props) {
 
     const timer3 = setTimeout(() => {
       setStep('dragon');
+      playGyaradosCry(1.0);
       sfx.fanfare();
     }, 7000);
 
